@@ -2,8 +2,24 @@ import axios from "axios";
 
 const api = axios.create({
   baseURL: "/api/v1",
-  timeout: 10000,
+  timeout: 15000,
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error.response?.status;
+    const detail = error.response?.data?.detail;
+    if (status === 500) {
+      console.error("[NavIS] Server error:", detail || error.message);
+    } else if (status === 404) {
+      console.warn("[NavIS] Not found:", error.config?.url);
+    } else if (!error.response) {
+      console.error("[NavIS] Network error — backend unavailable");
+    }
+    return Promise.reject(error);
+  }
+);
 
 export const systemsApi = {
   list: () => api.get("/systems/"),
@@ -35,4 +51,13 @@ export const graphApi = {
 
 export const searchApi = {
   search: (q) => api.get("/search/", { params: { q } }),
+};
+
+export const ingestApi = {
+  listSources: (systemId) => api.get(`/systems/${systemId}/sources/`),
+  createSource: (systemId, data) => api.post(`/systems/${systemId}/sources/`, data),
+  deleteSource: (systemId, sourceId) => api.delete(`/systems/${systemId}/sources/${sourceId}`),
+  runSource: (systemId, sourceId) => api.post(`/systems/${systemId}/sources/${sourceId}/run`),
+  listJobs: (sourceId) => api.get("/ingest/jobs", { params: { source_id: sourceId } }),
+  getJob: (jobId) => api.get(`/ingest/jobs/${jobId}`),
 };

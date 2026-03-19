@@ -100,9 +100,53 @@ class Edge(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
     from_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
-    from_type: Mapped[str] = mapped_column(String(50), nullable=False)  # system, service, method, db, table, procedure
+    from_type: Mapped[str] = mapped_column(String(50), nullable=False)
     to_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
     to_type: Mapped[str] = mapped_column(String(50), nullable=False)
-    kind: Mapped[str] = mapped_column(String(50), nullable=False, index=True)  # calls, reads-from, writes-to, depends-on, defined-in
+    kind: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     confidence: Mapped[float | None] = mapped_column(default=1.0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class IngestSource(Base):
+    """Настройка источника данных (Git, Confluence и т.д.)."""
+    __tablename__ = "ingest_sources"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    system_id: Mapped[str] = mapped_column(String(36), ForeignKey("systems.id", ondelete="CASCADE"), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    type: Mapped[str] = mapped_column(String(50), nullable=False)   # git, confluence
+    # Git fields
+    repo_url: Mapped[str | None] = mapped_column(Text)              # https://github.com/org/repo
+    branch: Mapped[str | None] = mapped_column(String(255), default="main")
+    path_filter: Mapped[str | None] = mapped_column(String(500))    # e.g. "api/" or "*.yaml"
+    token: Mapped[str | None] = mapped_column(Text)                 # PAT (в продакшне — шифровать)
+    provider: Mapped[str | None] = mapped_column(String(50))        # github, gitlab
+    # Confluence fields
+    confluence_url: Mapped[str | None] = mapped_column(Text)
+    space_key: Mapped[str | None] = mapped_column(String(100))
+    # Status
+    last_run_at: Mapped[datetime | None] = mapped_column(DateTime)
+    last_run_status: Mapped[str | None] = mapped_column(String(50)) # pending, running, done, error
+    last_run_error: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    jobs: Mapped[list["IngestJob"]] = relationship("IngestJob", back_populates="source", cascade="all, delete-orphan")
+
+
+class IngestJob(Base):
+    """Лог запуска ингеста."""
+    __tablename__ = "ingest_jobs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    source_id: Mapped[str] = mapped_column(String(36), ForeignKey("ingest_sources.id", ondelete="CASCADE"), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(50), default="pending")  # pending, running, done, error
+    started_at: Mapped[datetime | None] = mapped_column(DateTime)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime)
+    files_found: Mapped[int] = mapped_column(default=0)
+    methods_created: Mapped[int] = mapped_column(default=0)
+    error: Mapped[str | None] = mapped_column(Text)
+    log: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    source: Mapped["IngestSource"] = relationship("IngestSource", back_populates="jobs")

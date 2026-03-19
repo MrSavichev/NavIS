@@ -1,18 +1,30 @@
+import logging
+import traceback
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.db.database import engine, Base
-from app.api import systems, services, interfaces, methods, graph, search
+from app.api import systems, services, interfaces, methods, graph, search, ingest
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)-8s %(name)s — %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+log = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Создаём таблицы при старте (в продакшне использовать Alembic миграции)
+    log.info("NavIS backend starting up...")
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    log.info("Database tables verified.")
     yield
+    log.info("NavIS backend shutting down.")
 
 
 app = FastAPI(
@@ -29,6 +41,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    log.error(
+        "Unhandled exception on %s %s\n%s",
+        request.method,
+        request.url.path,
+        traceback.format_exc(),
+    )
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error", "type": type(exc).__name__},
+    )
+
 # Роутеры
 app.include_router(systems.router, prefix="/api/v1")
 app.include_router(services.router, prefix="/api/v1")
@@ -36,6 +62,8 @@ app.include_router(interfaces.router, prefix="/api/v1")
 app.include_router(methods.router, prefix="/api/v1")
 app.include_router(graph.router, prefix="/api/v1")
 app.include_router(search.router, prefix="/api/v1")
+app.include_router(ingest.router, prefix="/api/v1")
+app.include_router(ingest.jobs_router, prefix="/api/v1")
 
 
 @app.get("/api/health")

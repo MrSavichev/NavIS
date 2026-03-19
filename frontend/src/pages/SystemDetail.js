@@ -87,12 +87,20 @@ export default function SystemDetail() {
     <div>
       <div className="breadcrumb"><Link to="/">Каталог</Link> / {system.name}</div>
       <div className="card">
-        <div className="card-title">{system.name}</div>
-        {system.description && <div style={{ marginBottom: 8 }}>{system.description}</div>}
-        {system.owner && <div className="card-meta">👤 {system.owner}</div>}
-        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-          {system.tags.map((t) => <span key={t} className="badge" style={{ background: "#e8eaf6", color: "#3949ab" }}>{t}</span>)}
-          {system.environments.map((e) => <span key={e} className="badge" style={{ background: "#e8f5e9", color: "#2e7d32" }}>{e}</span>)}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <div className="card-title">{system.name}</div>
+            {system.description && <div style={{ marginBottom: 8 }}>{system.description}</div>}
+            {system.owner && <div className="card-meta">👤 {system.owner}</div>}
+            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+              {system.tags.map((t) => <span key={t} className="badge" style={{ background: "#e8eaf6", color: "#3949ab" }}>{t}</span>)}
+              {system.environments.map((e) => <span key={e} className="badge" style={{ background: "#e8f5e9", color: "#2e7d32" }}>{e}</span>)}
+            </div>
+          </div>
+          <Link to={`/systems/${systemId}/sources`}
+            style={{ background: "#1e40af", color: "#fff", borderRadius: 6, padding: "7px 14px", textDecoration: "none", fontSize: 13, fontWeight: 500, whiteSpace: "nowrap" }}>
+            ⚡ Источники данных
+          </Link>
         </div>
       </div>
 
