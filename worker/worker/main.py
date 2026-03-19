@@ -5,7 +5,10 @@ NavIS Ingest Worker
 import asyncio
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
+
+def utcnow() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 import redis.asyncio as aioredis
 from sqlalchemy import select
@@ -44,13 +47,13 @@ async def handle_ingest_git(task: dict, db: AsyncSession):
         log.error(f"IngestSource {source_id} not found")
         job.status = "error"
         job.error = "Source not found"
-        job.finished_at = datetime.utcnow()
+        job.finished_at = utcnow()
         await db.commit()
         return
 
     # Помечаем job как running
     job.status = "running"
-    job.started_at = datetime.utcnow()
+    job.started_at = utcnow()
     await db.commit()
 
     log.info(f"[job={job_id}] Starting git ingest: {source.repo_url} branch={source.branch}")
@@ -92,7 +95,7 @@ async def handle_ingest_git(task: dict, db: AsyncSession):
 
         job.methods_created = total_methods
         job.status = "done"
-        job.finished_at = datetime.utcnow()
+        job.finished_at = utcnow()
         job.log = "\n".join(log_lines)
         await db.commit()
 
@@ -102,7 +105,7 @@ async def handle_ingest_git(task: dict, db: AsyncSession):
         log.exception(f"[job={job_id}] Ingest failed: {e}")
         job.status = "error"
         job.error = str(e)
-        job.finished_at = datetime.utcnow()
+        job.finished_at = utcnow()
         await db.commit()
 
 

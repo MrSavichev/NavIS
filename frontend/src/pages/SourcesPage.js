@@ -203,8 +203,8 @@ export default function SourcesPage() {
 
       {showForm && (
         <div style={{
-          background: "#1e293b", border: "1px solid #334155", borderRadius: 10,
-          padding: 20, marginBottom: 20
+          background: "#1e293b", border: "1px solid #3b82f6", borderRadius: 10,
+          padding: 20, marginBottom: 24
         }}>
           <h3 style={{ margin: "0 0 16px" }}>Новый источник</h3>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -217,12 +217,19 @@ export default function SourcesPage() {
               <select value={form.provider} onChange={set("provider")} style={inputStyle}>
                 <option value="github">GitHub</option>
                 <option value="gitlab">GitLab</option>
+                <option value="bitbucket">Bitbucket Server</option>
               </select>
             </label>
             <label style={{ ...labelStyle, gridColumn: "1 / -1" }}>
               URL репозитория *
               <input value={form.repo_url} onChange={set("repo_url")} style={inputStyle}
-                placeholder="https://github.com/org/repo" />
+                placeholder={
+                  form.provider === "bitbucket"
+                    ? "https://bitbucket.company.com/projects/KEY/repos/my-repo"
+                    : form.provider === "gitlab"
+                    ? "https://gitlab.company.com/org/repo"
+                    : "https://github.com/org/repo"
+                } />
             </label>
             <label style={labelStyle}>
               Ветка
@@ -246,6 +253,12 @@ export default function SourcesPage() {
             </button>
             <button onClick={() => setShowForm(false)} style={btnStyle("#334155")}>Отмена</button>
           </div>
+        </div>
+      )}
+
+      {sources.length > 0 && (
+        <div style={{ fontSize: 13, color: "#64748b", marginBottom: 12, borderTop: "1px solid #1e293b", paddingTop: 12 }}>
+          Источники ({sources.length})
         </div>
       )}
 
