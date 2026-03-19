@@ -1,0 +1,116 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f4f6f9;
+  color: #1a1a2e;
+}
+
+.app { display: flex; flex-direction: column; min-height: 100vh; }
+
+.app-header {
+  background: #1a1a2e;
+  color: white;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.logo { color: #4fc3f7; font-size: 22px; font-weight: 700; text-decoration: none; }
+.logo-sub { color: #90a4ae; font-size: 13px; flex: 1; }
+
+.app-header nav { display: flex; gap: 20px; }
+.app-header nav a { color: #cfd8dc; text-decoration: none; font-size: 14px; }
+.app-header nav a:hover { color: white; }
+
+.app-main { flex: 1; padding: 24px; max-width: 1400px; margin: 0 auto; width: 100%; }
+
+/* Cards */
+.card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  margin-bottom: 16px;
+}
+
+.card-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+.card-meta { font-size: 13px; color: #607d8b; margin-bottom: 12px; }
+
+/* Tree list */
+.tree-item {
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.tree-item-header {
+  padding: 12px 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  transition: background 0.15s;
+}
+
+.tree-item-header:hover { background: #f5f8ff; }
+.tree-item-body { padding: 12px 16px; background: #fafafa; border-top: 1px solid #e0e0e0; }
+
+/* Badges */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.badge-http  { background: #e3f2fd; color: #1565c0; }
+.badge-grpc  { background: #f3e5f5; color: #6a1b9a; }
+.badge-get   { background: #e8f5e9; color: #2e7d32; }
+.badge-post  { background: #fff3e0; color: #e65100; }
+.badge-put   { background: #e3f2fd; color: #0277bd; }
+.badge-delete{ background: #ffebee; color: #b71c1c; }
+.badge-patch { background: #f3e5f5; color: #4a148c; }
+
+/* Search */
+.search-bar {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  outline: none;
+}
+.search-bar:focus { border-color: #4fc3f7; }
+
+/* Buttons */
+.btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+.btn-primary { background: #1a1a2e; color: white; }
+.btn-primary:hover { background: #2a2a4e; }
+.btn-secondary { background: #e0e0e0; color: #333; }
+.btn-secondary:hover { background: #d0d0d0; }
+
+/* Graph */
+.graph-container { width: 100%; height: calc(100vh - 140px); background: white; border-radius: 8px; }
+
+/* Loading */
+.loading { text-align: center; padding: 40px; color: #90a4ae; }
+
+/* Page title */
+.page-title { font-size: 24px; font-weight: 700; margin-bottom: 20px; }
+
+/* Breadcrumb */
+.breadcrumb { font-size: 13px; color: #607d8b; margin-bottom: 16px; }
+.breadcrumb a { color: #1976d2; text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }

@@ -1,0 +1,23 @@
+{
+  "name": "navis-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.2",
+    "cytoscape": "^3.30.2",
+    "react-cytoscapejs": "^2.0.0",
+    "axios": "^1.7.7",
+    "react-scripts": "5.0.1"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build"
+  },
+  "proxy": "http://backend:8000",
+  "browserslist": {
+    "production": [">0.2%", "not dead"],
+    "development": ["last 2 chrome versions", "last 2 edge versions"]
+  }
+}
