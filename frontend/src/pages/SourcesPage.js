@@ -206,7 +206,7 @@ export default function SourcesPage() {
           background: "#1e293b", border: "1px solid #3b82f6", borderRadius: 10,
           padding: 20, marginBottom: 24
         }}>
-          <h3 style={{ margin: "0 0 16px" }}>Новый источник</h3>
+          <h3 style={{ margin: "0 0 16px", color: "#f1f5f9" }}>Новый источник</h3>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <label style={labelStyle}>
               Название *
