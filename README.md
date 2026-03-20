@@ -63,7 +63,10 @@ NavIS/
 
 Приложение разворачивается из WSL2 (Debian) через Docker Compose.
 
+### Первый запуск
+
 ```bash
+git clone https://github.com/MrSavichev/NavIS.git ~/navis
 cd ~/navis/infra
 docker compose up -d
 ```
@@ -72,6 +75,21 @@ docker compose up -d
 - UI: `http://localhost`
 - Swagger UI: `http://localhost/api/docs`
 - ReDoc: `http://localhost/api/redoc`
+
+### Обновление (деплой)
+
+Все обновления выполняются одной командой:
+
+```bash
+bash ~/navis/infra/deploy.sh
+```
+
+Скрипт автоматически:
+1. Делает `git pull` (при конфликтах — сбрасывает локальные изменения)
+2. Применяет новые SQL-миграции из `infra/migrations/` (уже применённые пропускает)
+3. Пересобирает контейнеры (`backend`, `frontend`, `worker`)
+4. Перезапускает nginx (чтобы обновить upstream IP после пересборки)
+5. Проверяет доступность через `http://localhost/api/health`
 
 ---
 
