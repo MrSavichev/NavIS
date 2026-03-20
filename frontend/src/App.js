@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import SystemList from "./pages/SystemList";
 import SystemDetail from "./pages/SystemDetail";
@@ -8,6 +8,17 @@ import SourcesPage from "./pages/SourcesPage";
 import "./App.css";
 
 export default function App() {
+  const [theme, setTheme] = useState(
+    () => localStorage.getItem("navis-theme") || "dark"
+  );
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("navis-theme", theme);
+  }, [theme]);
+
+  const toggle = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
+
   return (
     <BrowserRouter>
       <div className="app">
@@ -17,6 +28,9 @@ export default function App() {
           <nav>
             <Link to="/">Каталог</Link>
             <Link to="/graph">Граф</Link>
+            <button onClick={toggle} className="theme-toggle" title="Переключить тему">
+              {theme === "dark" ? "☀️" : "🌙"}
+            </button>
           </nav>
         </header>
         <main className="app-main">

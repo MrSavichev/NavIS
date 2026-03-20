@@ -92,9 +92,9 @@ export default function SystemList() {
             <div className="card-title">{sys.name}</div>
             {sys.owner && <div className="card-meta">👤 {sys.owner}</div>}
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-              {sys.tags.map((t) => <span key={t} className="badge" style={{ background: "#e8eaf6", color: "#3949ab" }}>{t}</span>)}
+              {sys.tags.map((t) => <span key={t} className="badge badge-tag">{t}</span>)}
             </div>
-            <div style={{ marginTop: 12, fontSize: 13, color: "#607d8b" }}>
+            <div style={{ marginTop: 12, fontSize: 13, color: "var(--text-muted)" }}>
               {sys.service_count} сервис{sys.service_count !== 1 ? "ов" : ""}
             </div>
           </div>

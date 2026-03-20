@@ -1,46 +1,130 @@
+/* ─── CSS-переменные тем ───────────────────────────────────────────────────── */
+
+:root {
+  --bg:           #f4f6f9;
+  --bg-card:      #ffffff;
+  --bg-card2:     #fafafa;
+  --bg-hover:     #f5f8ff;
+  --bg-input:     #ffffff;
+  --text:         #1a1a2e;
+  --text-muted:   #607d8b;
+  --text-faint:   #90a4ae;
+  --border:       #e0e0e0;
+  --border-focus: #4fc3f7;
+  --header-bg:    #1a1a2e;
+  --shadow:       0 1px 4px rgba(0,0,0,0.08);
+}
+
+[data-theme="dark"] {
+  --bg:           #0d1117;
+  --bg-card:      #161b22;
+  --bg-card2:     #0d1117;
+  --bg-hover:     #1c2433;
+  --bg-input:     #0d1117;
+  --text:         #e6edf3;
+  --text-muted:   #8b949e;
+  --text-faint:   #6e7681;
+  --border:       #30363d;
+  --border-focus: #58a6ff;
+  --header-bg:    #010409;
+  --shadow:       0 1px 4px rgba(0,0,0,0.4);
+}
+
+/* ─── Сброс и база ─────────────────────────────────────────────────────────── */
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: #f4f6f9;
-  color: #1a1a2e;
+  background: var(--bg);
+  color: var(--text);
+  transition: background 0.3s, color 0.3s;
+  min-height: 100vh;
 }
+
+/* ─── Анимированный фон (только тёмная тема) ───────────────────────────────── */
+
+[data-theme="dark"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 20%, rgba(56, 139, 253, 0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 90% 80%, rgba(139, 92, 246, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 50% 50%, rgba(20, 184, 166, 0.04) 0%, transparent 70%),
+    #0d1117;
+  animation: bgShift 20s ease-in-out infinite alternate;
+}
+
+@keyframes bgShift {
+  0%   { background-position: 0% 0%, 100% 100%, 50% 50%; }
+  33%  { background-position: 20% 40%, 80% 60%, 30% 70%; }
+  66%  { background-position: 60% 10%, 40% 90%, 70% 30%; }
+  100% { background-position: 10% 80%, 90% 20%, 50% 50%; }
+}
+
+/* ─── Layout ───────────────────────────────────────────────────────────────── */
 
 .app { display: flex; flex-direction: column; min-height: 100vh; }
 
 .app-header {
-  background: #1a1a2e;
+  background: var(--header-bg);
   color: white;
   padding: 12px 24px;
   display: flex;
   align-items: center;
   gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  backdrop-filter: blur(8px);
 }
 
-.logo { color: #4fc3f7; font-size: 22px; font-weight: 700; text-decoration: none; }
+.logo { color: #4fc3f7; font-size: 22px; font-weight: 700; text-decoration: none; letter-spacing: -0.5px; }
 .logo-sub { color: #90a4ae; font-size: 13px; flex: 1; }
 
-.app-header nav { display: flex; gap: 20px; }
+.app-header nav { display: flex; gap: 20px; align-items: center; }
 .app-header nav a { color: #cfd8dc; text-decoration: none; font-size: 14px; }
 .app-header nav a:hover { color: white; }
 
 .app-main { flex: 1; padding: 24px; max-width: 1400px; margin: 0 auto; width: 100%; }
 
-/* Cards */
+/* ─── Переключатель темы ───────────────────────────────────────────────────── */
+
+.theme-toggle {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: #cfd8dc;
+  border-radius: 20px;
+  padding: 4px 12px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background 0.2s;
+  line-height: 1.4;
+}
+.theme-toggle:hover { background: rgba(255,255,255,0.15); }
+
+/* ─── Cards ────────────────────────────────────────────────────────────────── */
+
 .card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 8px;
   padding: 20px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  box-shadow: var(--shadow);
   margin-bottom: 16px;
+  border: 1px solid var(--border);
+  transition: background 0.3s, border-color 0.3s;
 }
 
-.card-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
-.card-meta { font-size: 13px; color: #607d8b; margin-bottom: 12px; }
+.card-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; color: var(--text); }
+.card-meta  { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; }
 
-/* Tree list */
+/* ─── Tree ─────────────────────────────────────────────────────────────────── */
+
 .tree-item {
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border);
   border-radius: 6px;
   margin-bottom: 8px;
   overflow: hidden;
@@ -52,14 +136,16 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: white;
+  background: var(--bg-card);
   transition: background 0.15s;
+  color: var(--text);
 }
 
-.tree-item-header:hover { background: #f5f8ff; }
-.tree-item-body { padding: 12px 16px; background: #fafafa; border-top: 1px solid #e0e0e0; }
+.tree-item-header:hover { background: var(--bg-hover); }
+.tree-item-body { padding: 12px 16px; background: var(--bg-card2); border-top: 1px solid var(--border); }
 
-/* Badges */
+/* ─── Badges ───────────────────────────────────────────────────────────────── */
+
 .badge {
   display: inline-block;
   padding: 2px 8px;
@@ -67,27 +153,49 @@ body {
   font-size: 11px;
   font-weight: 600;
 }
-.badge-http  { background: #e3f2fd; color: #1565c0; }
-.badge-grpc  { background: #f3e5f5; color: #6a1b9a; }
-.badge-get   { background: #e8f5e9; color: #2e7d32; }
-.badge-post  { background: #fff3e0; color: #e65100; }
-.badge-put   { background: #e3f2fd; color: #0277bd; }
-.badge-delete{ background: #ffebee; color: #b71c1c; }
-.badge-patch { background: #f3e5f5; color: #4a148c; }
 
-/* Search */
+/* Светлая тема */
+.badge-http   { background: #e3f2fd; color: #1565c0; }
+.badge-grpc   { background: #f3e5f5; color: #6a1b9a; }
+.badge-get    { background: #e8f5e9; color: #2e7d32; }
+.badge-post   { background: #fff3e0; color: #e65100; }
+.badge-put    { background: #e3f2fd; color: #0277bd; }
+.badge-delete { background: #ffebee; color: #b71c1c; }
+.badge-patch  { background: #f3e5f5; color: #4a148c; }
+
+/* Тёмная тема — насыщеннее */
+[data-theme="dark"] .badge-http   { background: #0c2d48; color: #58a6ff; }
+[data-theme="dark"] .badge-grpc   { background: #2d1b4e; color: #c084fc; }
+[data-theme="dark"] .badge-get    { background: #0d2a1a; color: #3fb950; }
+[data-theme="dark"] .badge-post   { background: #2d1b00; color: #f97316; }
+[data-theme="dark"] .badge-put    { background: #0c2340; color: #38bdf8; }
+[data-theme="dark"] .badge-delete { background: #2d0a0a; color: #f85149; }
+[data-theme="dark"] .badge-patch  { background: #1e0d33; color: #a78bfa; }
+
+.badge-tag { background: #e8eaf6; color: #3949ab; }
+.badge-env { background: #e8f5e9; color: #2e7d32; }
+[data-theme="dark"] .badge-tag { background: #1a1f5e; color: #818cf8; }
+[data-theme="dark"] .badge-env { background: #052e16; color: #4ade80; }
+
+/* ─── Search ───────────────────────────────────────────────────────────────── */
+
 .search-bar {
   width: 100%;
   padding: 12px 16px;
   font-size: 16px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border);
   border-radius: 8px;
   margin-bottom: 20px;
   outline: none;
+  background: var(--bg-input);
+  color: var(--text);
+  transition: border-color 0.2s, background 0.3s;
 }
-.search-bar:focus { border-color: #4fc3f7; }
+.search-bar:focus { border-color: var(--border-focus); }
+.search-bar::placeholder { color: var(--text-faint); }
 
-/* Buttons */
+/* ─── Buttons ──────────────────────────────────────────────────────────────── */
+
 .btn {
   padding: 8px 16px;
   border-radius: 6px;
@@ -96,21 +204,41 @@ body {
   font-size: 14px;
   font-weight: 500;
 }
-.btn-primary { background: #1a1a2e; color: white; }
+.btn-primary   { background: #1a1a2e; color: white; }
 .btn-primary:hover { background: #2a2a4e; }
-.btn-secondary { background: #e0e0e0; color: #333; }
-.btn-secondary:hover { background: #d0d0d0; }
+.btn-secondary { background: var(--border); color: var(--text); }
+.btn-secondary:hover { filter: brightness(0.9); }
 
-/* Graph */
-.graph-container { width: 100%; height: calc(100vh - 140px); background: white; border-radius: 8px; }
+/* ─── Graph ────────────────────────────────────────────────────────────────── */
 
-/* Loading */
-.loading { text-align: center; padding: 40px; color: #90a4ae; }
+.graph-container {
+  width: 100%;
+  height: calc(100vh - 140px);
+  background: var(--bg-card);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
 
-/* Page title */
-.page-title { font-size: 24px; font-weight: 700; margin-bottom: 20px; }
+/* ─── Misc ─────────────────────────────────────────────────────────────────── */
 
-/* Breadcrumb */
-.breadcrumb { font-size: 13px; color: #607d8b; margin-bottom: 16px; }
+.loading   { text-align: center; padding: 40px; color: var(--text-faint); }
+.page-title { font-size: 24px; font-weight: 700; margin-bottom: 20px; color: var(--text); }
+.breadcrumb { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
 .breadcrumb a { color: #1976d2; text-decoration: none; }
+[data-theme="dark"] .breadcrumb a { color: #58a6ff; }
 .breadcrumb a:hover { text-decoration: underline; }
+
+/* ─── pre / code блоки ─────────────────────────────────────────────────────── */
+
+pre {
+  background: var(--bg-card2) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border);
+}
+
+/* ─── Scrollbar (тёмная тема) ──────────────────────────────────────────────── */
+
+[data-theme="dark"] ::-webkit-scrollbar { width: 6px; height: 6px; }
+[data-theme="dark"] ::-webkit-scrollbar-track { background: #0d1117; }
+[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: #484f58; }

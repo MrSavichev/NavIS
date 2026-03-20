@@ -264,8 +264,8 @@ export default function SystemDetail() {
             {system.description && <div style={{ marginBottom: 8 }}>{system.description}</div>}
             {system.owner && <div className="card-meta">👤 {system.owner}</div>}
             <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-              {system.tags.map((t) => <span key={t} className="badge" style={{ background: "#e8eaf6", color: "#3949ab" }}>{t}</span>)}
-              {system.environments.map((e) => <span key={e} className="badge" style={{ background: "#e8f5e9", color: "#2e7d32" }}>{e}</span>)}
+              {system.tags.map((t) => <span key={t} className="badge badge-tag">{t}</span>)}
+              {system.environments.map((e) => <span key={e} className="badge badge-env">{e}</span>)}
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", flexShrink: 0 }}>
