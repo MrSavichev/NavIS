@@ -2,6 +2,65 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { methodsApi, interfacesDirectApi, servicesDirectApi } from "../api/client";
 
+function EditMethodModal({ method, interfaceId, onSave, onClose }) {
+  const [form, setForm] = useState({
+    name: method.name || "",
+    description: method.description || "",
+    path: method.path || "",
+    http_method: method.http_method || "",
+  });
+  const [saving, setSaving] = useState(false);
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const r = await methodsApi.update(interfaceId, method.id, form);
+      onSave(r.data);
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}
+      onClick={onClose}>
+      <div style={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 12, padding: 24, width: "100%", maxWidth: 480 }}
+        onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+          <h3 style={{ margin: 0, color: "#f1f5f9" }}>Редактировать метод</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 20, cursor: "pointer" }}>✕</button>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {[
+            { key: "name", label: "Название операции" },
+            { key: "http_method", label: "HTTP метод (GET, POST...)" },
+            { key: "path", label: "Путь (/api/v1/resource)" },
+            { key: "description", label: "Описание" },
+          ].map(({ key, label }) => (
+            <label key={key} style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 13, color: "#94a3b8" }}>
+              {label}
+              <input value={form[key]} onChange={set(key)}
+                style={{ background: "#0f172a", border: "1px solid #334155", borderRadius: 6, color: "#f1f5f9", padding: "8px 10px", fontSize: 14, outline: "none" }} />
+            </label>
+          ))}
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <button onClick={handleSave} disabled={saving}
+              style={{ background: "#16a34a", color: "#fff", border: "none", borderRadius: 6, padding: "7px 14px", cursor: "pointer", fontSize: 13 }}>
+              {saving ? "Сохранение..." : "Сохранить"}
+            </button>
+            <button onClick={onClose}
+              style={{ background: "#334155", color: "#fff", border: "none", borderRadius: 6, padding: "7px 14px", cursor: "pointer", fontSize: 13 }}>
+              Отмена
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function MethodDetail() {
   const { interfaceId, methodId } = useParams();
   const navigate = useNavigate();
@@ -11,6 +70,7 @@ export default function MethodDetail() {
   const [sources, setSources] = useState([]);
   const [tab, setTab] = useState("overview");
   const [deleting, setDeleting] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
 
   useEffect(() => {
     methodsApi.get(interfaceId, methodId).then((r) => setMethod(r.data));
@@ -33,6 +93,11 @@ export default function MethodDetail() {
   };
 
   if (!method) return <div className="loading">Загрузка...</div>;
+
+  if (showEdit) return (
+    <EditMethodModal method={method} interfaceId={interfaceId}
+      onSave={(updated) => setMethod(updated)} onClose={() => setShowEdit(false)} />
+  );
 
   const tabs = ["overview", "request", "response", "sources"];
   const tabLabels = {
@@ -63,10 +128,16 @@ export default function MethodDetail() {
               {method.path || method.name}
             </span>
           </div>
-          <button onClick={handleDelete} disabled={deleting}
-            style={{ background: "#7f1d1d", color: "#fff", border: "none", borderRadius: 6, padding: "6px 12px", cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>
-            {deleting ? "Удаление..." : "Удалить метод"}
-          </button>
+          <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+            <button onClick={() => setShowEdit(true)}
+              style={{ background: "#334155", color: "#fff", border: "none", borderRadius: 6, padding: "6px 12px", cursor: "pointer", fontSize: 13 }}>
+              ✎ Редактировать
+            </button>
+            <button onClick={handleDelete} disabled={deleting}
+              style={{ background: "#7f1d1d", color: "#fff", border: "none", borderRadius: 6, padding: "6px 12px", cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>
+              {deleting ? "Удаление..." : "Удалить"}
+            </button>
+          </div>
         </div>
 
         {method.description && <div style={{ color: "#546e7a", margin: "8px 0" }}>{method.description}</div>}

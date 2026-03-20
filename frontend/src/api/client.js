@@ -33,16 +33,21 @@ export const servicesApi = {
   list: (systemId) => api.get(`/systems/${systemId}/services/`),
   get: (systemId, id) => api.get(`/systems/${systemId}/services/${id}`),
   create: (systemId, data) => api.post(`/systems/${systemId}/services/`, data),
+  update: (systemId, id, data) => api.patch(`/systems/${systemId}/services/${id}`, data),
+  delete: (systemId, id) => api.delete(`/systems/${systemId}/services/${id}`),
 };
 
 export const interfacesApi = {
   list: (serviceId) => api.get(`/services/${serviceId}/interfaces/`),
   create: (serviceId, data) => api.post(`/services/${serviceId}/interfaces/`, data),
+  update: (serviceId, id, data) => api.patch(`/services/${serviceId}/interfaces/${id}`, data),
+  delete: (serviceId, id) => api.delete(`/services/${serviceId}/interfaces/${id}`),
 };
 
 export const methodsApi = {
   list: (interfaceId) => api.get(`/interfaces/${interfaceId}/methods/`),
   get: (interfaceId, id) => api.get(`/interfaces/${interfaceId}/methods/${id}`),
+  update: (interfaceId, id, data) => api.patch(`/interfaces/${interfaceId}/methods/${id}`, data),
   delete: (interfaceId, id) => api.delete(`/interfaces/${interfaceId}/methods/${id}`),
   sources: (methodId) => api.get(`/methods/${methodId}/sources`),
 };

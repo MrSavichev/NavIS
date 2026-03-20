@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
 from app.models.models import Interface, Service
-from app.schemas.schemas import InterfaceCreate, InterfaceOut
+from app.schemas.schemas import InterfaceCreate, InterfaceOut, InterfaceUpdate
 
 router = APIRouter(prefix="/services/{service_id}/interfaces", tags=["interfaces"])
 
@@ -35,6 +35,21 @@ async def create_interface(service_id: str, data: InterfaceCreate, db: AsyncSess
         raise HTTPException(status_code=404, detail="Service not found")
     iface = Interface(service_id=service_id, **data.model_dump())
     db.add(iface)
+    await db.commit()
+    await db.refresh(iface)
+    return iface
+
+
+@router.patch("/{interface_id}", response_model=InterfaceOut)
+async def update_interface(service_id: str, interface_id: str, data: InterfaceUpdate, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Interface).where(Interface.id == interface_id, Interface.service_id == service_id)
+    )
+    iface = result.scalar_one_or_none()
+    if not iface:
+        raise HTTPException(status_code=404, detail="Interface not found")
+    for field, value in data.model_dump(exclude_none=True).items():
+        setattr(iface, field, value)
     await db.commit()
     await db.refresh(iface)
     return iface

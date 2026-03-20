@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
 from app.models.models import Method, Interface, Source, Service
-from app.schemas.schemas import MethodCreate, MethodOut, InterfaceOut, SourceOut, ServiceOut
+from app.schemas.schemas import MethodCreate, MethodOut, MethodUpdate, InterfaceOut, SourceOut, ServiceOut
 
 router = APIRouter(prefix="/interfaces/{interface_id}/methods", tags=["methods"])
 direct_router = APIRouter(tags=["methods"])
@@ -36,6 +36,21 @@ async def create_method(interface_id: str, data: MethodCreate, db: AsyncSession 
         raise HTTPException(status_code=404, detail="Interface not found")
     method = Method(interface_id=interface_id, **data.model_dump())
     db.add(method)
+    await db.commit()
+    await db.refresh(method)
+    return method
+
+
+@router.patch("/{method_id}", response_model=MethodOut)
+async def update_method(interface_id: str, method_id: str, data: MethodUpdate, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Method).where(Method.id == method_id, Method.interface_id == interface_id)
+    )
+    method = result.scalar_one_or_none()
+    if not method:
+        raise HTTPException(status_code=404, detail="Method not found")
+    for field, value in data.model_dump(exclude_none=True).items():
+        setattr(method, field, value)
     await db.commit()
     await db.refresh(method)
     return method

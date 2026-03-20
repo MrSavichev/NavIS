@@ -67,6 +67,11 @@ class ServiceOut(BaseModel):
 
 # ─── Interface ────────────────────────────────────────────────────────────────
 
+class ServiceUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+
+
 class InterfaceCreate(BaseModel):
     name: str
     type: str  # http, grpc
@@ -89,6 +94,13 @@ class InterfaceOut(BaseModel):
 
 
 # ─── Method ───────────────────────────────────────────────────────────────────
+
+class InterfaceUpdate(BaseModel):
+    name: str | None = None
+    type: str | None = None
+    version: str | None = None
+    spec_ref: str | None = None
+
 
 class MethodCreate(BaseModel):
     name: str
@@ -115,6 +127,15 @@ class MethodOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class MethodUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    http_method: str | None = None
+    path: str | None = None
+    request_schema: dict | None = None
+    response_schema: dict | None = None
 
 
 # ─── Source ───────────────────────────────────────────────────────────────────
