@@ -2,7 +2,7 @@
 
 **Версия:** 0.1.0
 **Base URL:** `http://<host>/api/v1`
-**Интерактивная документация:** `http://<host>/docs` (Swagger UI) · `http://<host>/redoc`
+**Интерактивная документация:** `http://<host>/api/docs` (Swagger UI) · `http://<host>/api/redoc`
 
 ---
 
