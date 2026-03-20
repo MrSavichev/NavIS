@@ -180,3 +180,4 @@ class SearchResult(BaseModel):
     label: str
     description: str | None
     path: str | None = None
+    url: str | None = None

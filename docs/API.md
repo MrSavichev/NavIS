@@ -1,6 +1,6 @@
 # NavIS — API Reference
 
-**Версия:** 0.1.0
+**Версия:** 0.3.0
 **Base URL:** `http://<host>/api/v1`
 **Интерактивная документация:** `http://<host>/api/docs` (Swagger UI) · `http://<host>/api/redoc`
 
@@ -17,7 +17,7 @@
 7. [Sources — Источники (evidence)](#sources)
 8. [Graph — Граф зависимостей](#graph)
 9. [Search — Поиск](#search)
-10. [Ingest — Импорт из Git](#ingest)
+10. [Ingest — Импорт из источников](#ingest)
 
 ---
 
@@ -388,15 +388,26 @@ Evidence — ссылки на первоисточники данных о ме
   "nodes": [
     { "id": "uuid", "type": "system", "label": "Billing" },
     { "id": "uuid", "type": "service", "label": "payment-service" },
-    { "id": "uuid", "type": "interface", "label": "HTTP API v2.1" }
+    { "id": "ext:SomeExternalSystem", "type": "external", "label": "SomeExternalSystem" }
   ],
   "edges": [
-    { "id": "uuid", "source": "system-id", "target": "service-id", "kind": "contains" }
+    { "id": "uuid", "source": "system-id", "target": "service-id", "kind": "contains" },
+    { "id": "uuid", "source": "service-id", "target": "ext:SomeExternalSystem", "kind": "REST/POST" }
   ]
 }
 ```
 
-`type` узла: `system`, `service`, `interface`, `method`.
+**Типы узлов (`node.type`):**
+
+| Тип | Описание |
+|---|---|
+| `system` | Информационная система |
+| `service` | Сервис внутри ИС |
+| `interface` | API интерфейс |
+| `method` | Эндпоинт / операция |
+| `external` | Внешний сервис, не зарегистрированный в каталоге (из draw.io диаграмм Confluence) |
+
+**Типы рёбер (`edge.kind`):** `contains`, `calls`, `depends-on`, а также значения из label draw.io диаграмм (например, `REST/POST →`, `gRPC`).
 
 ---
 
@@ -420,7 +431,8 @@ Evidence — ссылки на первоисточники данных о ме
     "type": "method",
     "label": "POST /api/v1/payments",
     "description": "Создать платёж",
-    "path": "Billing / payment-service / HTTP API"
+    "path": "Billing / payment-service / HTTP API",
+    "url": "/systems/uuid/..."
   }
 ]
 ```
@@ -431,7 +443,11 @@ Evidence — ссылки на первоисточники данных о ме
 
 ## Ingest
 
-Управление источниками данных и заданиями импорта из Git-репозиториев.
+Управление источниками данных и заданиями импорта.
+
+Поддерживаются два типа источников:
+- **`git`** — репозитории GitHub / GitLab / Bitbucket Server; парсит OpenAPI/Swagger YAML/JSON
+- **`confluence`** — Confluence Server; извлекает draw.io диаграммы (архитектурные схемы) и строит граф зависимостей
 
 ### `GET /api/v1/systems/{system_id}/sources/`
 
@@ -465,7 +481,9 @@ Evidence — ссылки на первоисточники данных о ме
 
 Создать источник.
 
-**Request body** — `IngestSourceCreate`
+#### Git-источник
+
+**Request body**
 ```json
 {
   "name": "Main API repo",
@@ -478,9 +496,32 @@ Evidence — ссылки на первоисточники данных о ме
 }
 ```
 
-Поддерживаемые провайдеры: `github`, `gitlab`, `bitbucket` (Bitbucket Server).
+Поддерживаемые провайдеры (`provider`): `github`, `gitlab`, `bitbucket`.
 Для Bitbucket Server формат URL: `https://bitbucket.company.com/projects/KEY/repos/my-repo`.
-`token` хранится в БД в открытом виде — рекомендуется использовать read-only токены с минимальными правами.
+
+#### Confluence-источник
+
+**Request body**
+```json
+{
+  "name": "Architecture diagrams",
+  "type": "confluence",
+  "confluence_url": "https://wiki.company.com",
+  "space_key": "MYSPACE",
+  "token": "username:password",
+  "path_filter": "Схема сервисов"
+}
+```
+
+Поля Confluence:
+| Поле | Обязательно | Описание |
+|---|---|---|
+| `confluence_url` | ✓ | Базовый URL Confluence Server (без слеша в конце) |
+| `space_key` | ✓ | Ключ пространства (Space Key) |
+| `token` | ✓ | Basic auth в формате `username:password` |
+| `path_filter` | — | Фильтр по заголовку страницы (частичное совпадение) |
+
+Confluence-коннектор находит на страницах вложения с `mediaType: application/vnd.jgraph.mxfile` (draw.io диаграммы), парсит сущности и связи, сохраняет рёбра в граф. Сущности сопоставляются с сервисами каталога по имени; несопоставленные создаются как узлы типа `external`.
 
 **Response `201`** — `IngestSourceOut`
 
@@ -515,6 +556,8 @@ Evidence — ссылки на первоисточники данных о ме
 ```
 
 Статусы: `pending` → `running` → `done` | `error`.
+
+Для Confluence-источника поле `files_found` = количество найденных draw.io диаграмм, `methods_created` = количество созданных рёбер в графе.
 
 ---
 
@@ -597,7 +640,7 @@ Browser
   ▼
 Nginx :80
   ├── /api/*     → FastAPI Backend :8000  ──→ PostgreSQL
-  ├── /docs      → FastAPI Swagger UI
+  ├── /api/docs  → Swagger UI
   └── /*         → React Frontend :3000
 
 FastAPI Backend ──→ Redis (push задач)
@@ -605,12 +648,17 @@ FastAPI Backend ──→ Redis (push задач)
                          ▼
                     Worker (blpop)
                          │
-                    ┌────┴────┐
-                    │ GitHub  │
-                    │ GitLab  │  HTTP API
-                    │Bitbucket│
-                    └────┬────┘
-                         │ parse OpenAPI/Swagger
+              ┌──────────┴──────────┐
+              │                     │
+         Git коннектор      Confluence коннектор
+         (GitHub/GitLab/    (Confluence Server,
+          Bitbucket)         Basic auth)
+              │                     │
+         OpenAPI/Swagger     draw.io attachments
+         YAML/JSON парсер    (vnd.jgraph.mxfile)
+              │                     │
+              └──────────┬──────────┘
                          ▼
                     PostgreSQL
+                    (Services, Edges, Jobs)
 ```

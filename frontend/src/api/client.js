@@ -47,6 +47,7 @@ export const interfacesApi = {
 export const methodsApi = {
   list: (interfaceId) => api.get(`/interfaces/${interfaceId}/methods/`),
   get: (interfaceId, id) => api.get(`/interfaces/${interfaceId}/methods/${id}`),
+  create: (interfaceId, data) => api.post(`/interfaces/${interfaceId}/methods/`, data),
   update: (interfaceId, id, data) => api.patch(`/interfaces/${interfaceId}/methods/${id}`, data),
   delete: (interfaceId, id) => api.delete(`/interfaces/${interfaceId}/methods/${id}`),
   sources: (methodId) => api.get(`/methods/${methodId}/sources`),

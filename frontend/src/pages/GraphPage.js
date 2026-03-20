@@ -7,6 +7,7 @@ const NODE_COLORS = {
   service:   "#1565c0",
   interface: "#6a1b9a",
   method:    "#2e7d32",
+  external:  "#b45309",
 };
 
 const STYLESHEET = [
@@ -18,7 +19,7 @@ const STYLESHEET = [
       "text-valign": "bottom",
       "text-halign": "center",
       "background-color": (ele) => NODE_COLORS[ele.data("type")] || "#607d8b",
-      color: "#333",
+      color: "#ffffff",
       width: 36,
       height: 36,
       "text-margin-y": 4,
@@ -43,16 +44,22 @@ const STYLESHEET = [
   },
 ];
 
+const ALL_TYPES = Object.keys(NODE_COLORS);
+
 export default function GraphPage() {
   const [elements, setElements] = useState([]);
   const [systems, setSystems] = useState([]);
   const [selectedSystem, setSelectedSystem] = useState("");
   const [depth, setDepth] = useState(2);
   const [loading, setLoading] = useState(false);
+  const [visibleTypes, setVisibleTypes] = useState(new Set(ALL_TYPES));
 
   useEffect(() => {
     systemsApi.list().then((r) => setSystems(r.data));
   }, []);
+
+  const [rawNodes, setRawNodes] = useState([]);
+  const [rawEdges, setRawEdges] = useState([]);
 
   useEffect(() => {
     setLoading(true);
@@ -60,12 +67,30 @@ export default function GraphPage() {
     if (selectedSystem) params.system_id = selectedSystem;
     graphApi.get(params).then((r) => {
       const { nodes, edges } = r.data;
-      const cyNodes = nodes.map((n) => ({ data: { id: n.id, label: n.label, type: n.type } }));
-      const cyEdges = edges.map((e) => ({ data: { id: e.id, source: e.source, target: e.target, kind: e.kind } }));
-      setElements([...cyNodes, ...cyEdges]);
+      setRawNodes(nodes.map((n) => ({ data: { id: n.id, label: n.label, type: n.type } })));
+      setRawEdges(edges.map((e) => ({ data: { id: e.id, source: e.source, target: e.target, kind: e.kind } })));
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [selectedSystem, depth]);
+
+  useEffect(() => {
+    const visibleNodeIds = new Set(
+      rawNodes.filter((n) => visibleTypes.has(n.data.type)).map((n) => n.data.id)
+    );
+    const filteredNodes = rawNodes.filter((n) => visibleNodeIds.has(n.data.id));
+    const filteredEdges = rawEdges.filter(
+      (e) => visibleNodeIds.has(e.data.source) && visibleNodeIds.has(e.data.target)
+    );
+    setElements([...filteredNodes, ...filteredEdges]);
+  }, [rawNodes, rawEdges, visibleTypes]);
+
+  const toggleType = (type) => {
+    setVisibleTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) next.delete(type); else next.add(type);
+      return next;
+    });
+  };
 
   return (
     <div>
@@ -80,13 +105,22 @@ export default function GraphPage() {
           <option value={2}>Глубина: 2</option>
           <option value={3}>Глубина: 3</option>
         </select>
-        <div style={{ display: "flex", gap: 8, fontSize: 13 }}>
-          {Object.entries(NODE_COLORS).map(([type, color]) => (
-            <span key={type} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <span style={{ width: 12, height: 12, borderRadius: "50%", background: color, display: "inline-block" }} />
-              {type}
-            </span>
-          ))}
+        <div style={{ display: "flex", gap: 6, fontSize: 13 }}>
+          {Object.entries(NODE_COLORS).map(([type, color]) => {
+            const active = visibleTypes.has(type);
+            return (
+              <button key={type} onClick={() => toggleType(type)} style={{
+                display: "flex", alignItems: "center", gap: 4,
+                background: active ? "#1e293b" : "#0f172a",
+                border: `1px solid ${active ? color : "#334155"}`,
+                borderRadius: 6, padding: "3px 9px", cursor: "pointer",
+                color: active ? "#f1f5f9" : "#64748b", fontSize: 12,
+              }}>
+                <span style={{ width: 10, height: 10, borderRadius: "50%", background: active ? color : "#334155", display: "inline-block" }} />
+                {type}
+              </button>
+            );
+          })}
         </div>
       </div>
 

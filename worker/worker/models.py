@@ -78,6 +78,18 @@ class IngestSource(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class Edge(Base):
+    __tablename__ = "edges"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    from_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    from_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    to_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    to_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    kind: Mapped[str] = mapped_column(String(50), nullable=False)
+    confidence: Mapped[float | None] = mapped_column(default=1.0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class IngestJob(Base):
     __tablename__ = "ingest_jobs"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)

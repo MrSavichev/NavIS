@@ -60,10 +60,13 @@ export default function SystemList() {
           <div className="card-title">Результаты поиска</div>
           {searchResults.length === 0 && <div className="card-meta">Ничего не найдено</div>}
           {searchResults.map((r) => (
-            <div key={r.id} className="tree-item-header" style={{ borderBottom: "1px solid #eee" }}>
+            <div key={r.id} className="tree-item-header"
+              style={{ borderBottom: "1px solid var(--border)", cursor: r.url ? "pointer" : "default" }}
+              onClick={() => r.url && navigate(r.url)}>
               <span className={`badge badge-${r.type}`}>{r.type}</span>
               <span style={{ fontWeight: 500 }}>{r.label}</span>
               {r.path && <span className="card-meta">{r.path}</span>}
+              {r.url && <span className="card-meta" style={{ marginLeft: "auto" }}>→</span>}
             </div>
           ))}
         </div>

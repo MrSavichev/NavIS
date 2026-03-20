@@ -13,6 +13,9 @@ router = APIRouter(prefix="/graph", tags=["graph"])
 async def get_graph(
     system_id: str | None = Query(None, description="Фильтр по ИС"),
     depth: int = Query(2, ge=1, le=5, description="Глубина графа"),
+    show_methods: bool = Query(True, description="Показывать методы"),
+    show_interfaces: bool = Query(True, description="Показывать интерфейсы"),
+    show_deps: bool = Query(True, description="Показывать зависимости из draw.io"),
     db: AsyncSession = Depends(get_db),
 ):
     nodes: list[GraphNode] = []
@@ -41,10 +44,10 @@ async def get_graph(
                 node_ids.add(svc.id)
             edges.append(GraphEdge(
                 id=f"{sys.id}->{svc.id}",
-                source=sys.id, target=svc.id, kind="contains"
+                source=sys.id, target=svc.id, kind="contains",
             ))
 
-            if depth < 2:
+            if depth < 2 or not show_interfaces:
                 continue
 
             # Интерфейсы
@@ -56,15 +59,15 @@ async def get_graph(
                 if iface.id not in node_ids:
                     nodes.append(GraphNode(
                         id=iface.id, type="interface",
-                        label=f"{iface.name} ({iface.type})"
+                        label=f"{iface.name} ({iface.type})",
                     ))
                     node_ids.add(iface.id)
                 edges.append(GraphEdge(
                     id=f"{svc.id}->{iface.id}",
-                    source=svc.id, target=iface.id, kind="exposes"
+                    source=svc.id, target=iface.id, kind="exposes",
                 ))
 
-                if depth < 3:
+                if depth < 3 or not show_methods:
                     continue
 
                 # Методы
@@ -79,17 +82,25 @@ async def get_graph(
                         node_ids.add(method.id)
                     edges.append(GraphEdge(
                         id=f"{iface.id}->{method.id}",
-                        source=iface.id, target=method.id, kind="defines"
+                        source=iface.id, target=method.id, kind="defines",
                     ))
 
-    # Добавляем зависимости из таблицы Edge
-    edge_result = await db.execute(select(Edge))
-    for edge in edge_result.scalars().all():
-        edges.append(GraphEdge(
-            id=edge.id,
-            source=edge.from_id,
-            target=edge.to_id,
-            kind=edge.kind,
-        ))
+    # Зависимости из таблицы Edge (draw.io)
+    if show_deps:
+        edge_result = await db.execute(select(Edge))
+        for edge in edge_result.scalars().all():
+            # Добавляем внешние узлы (ext:ServiceName), которых нет в каталоге
+            for node_id, node_type in [(edge.from_id, edge.from_type), (edge.to_id, edge.to_type)]:
+                if node_id not in node_ids:
+                    label = node_id.removeprefix("ext:")
+                    nodes.append(GraphNode(id=node_id, type=node_type, label=label))
+                    node_ids.add(node_id)
+
+            edges.append(GraphEdge(
+                id=edge.id,
+                source=edge.from_id,
+                target=edge.to_id,
+                kind=edge.kind,
+            ))
 
     return GraphOut(nodes=nodes, edges=edges)

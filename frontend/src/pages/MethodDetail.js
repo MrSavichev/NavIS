@@ -143,13 +143,13 @@ export default function MethodDetail() {
         {method.description && <div style={{ color: "#546e7a", margin: "8px 0" }}>{method.description}</div>}
 
         {/* Вкладки */}
-        <div style={{ display: "flex", gap: 4, borderBottom: "2px solid #e0e0e0", marginBottom: 16, marginTop: 8, overflowX: "auto" }}>
+        <div style={{ display: "flex", gap: 4, borderBottom: "2px solid var(--border)", marginBottom: 16, marginTop: 8, overflowX: "auto" }}>
           {tabs.map((t) => (
             <button key={t} onClick={() => setTab(t)}
               style={{
                 padding: "8px 16px", border: "none", background: "none", cursor: "pointer",
-                fontWeight: tab === t ? 600 : 400, whiteSpace: "nowrap",
-                borderBottom: tab === t ? "2px solid #1a1a2e" : "2px solid transparent",
+                fontWeight: tab === t ? 600 : 400, whiteSpace: "nowrap", color: "var(--text)",
+                borderBottom: tab === t ? "2px solid var(--text)" : "2px solid transparent",
                 marginBottom: -2,
               }}>
               {tabLabels[t]}
@@ -175,7 +175,7 @@ export default function MethodDetail() {
 
         {tab === "request" && (
           method.request_schema ? (
-            <pre style={{ background: "#f5f5f5", padding: 16, borderRadius: 6, overflow: "auto", fontSize: 13 }}>
+            <pre style={{ padding: 16, borderRadius: 6, overflow: "auto", fontSize: 13 }}>
               {JSON.stringify(method.request_schema, null, 2)}
             </pre>
           ) : (
@@ -187,7 +187,7 @@ export default function MethodDetail() {
 
         {tab === "response" && (
           method.response_schema ? (
-            <pre style={{ background: "#f5f5f5", padding: 16, borderRadius: 6, overflow: "auto", fontSize: 13 }}>
+            <pre style={{ padding: 16, borderRadius: 6, overflow: "auto", fontSize: 13 }}>
               {JSON.stringify(method.response_schema, null, 2)}
             </pre>
           ) : (

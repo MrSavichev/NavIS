@@ -79,6 +79,146 @@ function EditSystemModal({ system, onSave, onClose }) {
   );
 }
 
+// ─── Добавление сервиса ────────────────────────────────────────────────────────
+
+function AddServiceModal({ systemId, onSave, onClose }) {
+  const [form, setForm] = useState({ name: "", description: "" });
+  const [saving, setSaving] = useState(false);
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const r = await servicesApi.create(systemId, form);
+      onSave(r.data);
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal title="Добавить сервис" onClose={onClose}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {[
+          { key: "name", label: "Название *", placeholder: "payment-service" },
+          { key: "description", label: "Описание", placeholder: "" },
+        ].map(({ key, label, placeholder }) => (
+          <label key={key} style={labelStyle}>
+            {label}
+            <input value={form[key]} onChange={set(key)} placeholder={placeholder} style={inputStyle} />
+          </label>
+        ))}
+        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+          <button onClick={handleSave} disabled={saving || !form.name} style={btnStyle("#16a34a")}>
+            {saving ? "Сохранение..." : "Создать"}
+          </button>
+          <button onClick={onClose} style={btnStyle("#334155")}>Отмена</button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+// ─── Добавление интерфейса ─────────────────────────────────────────────────────
+
+function AddInterfaceModal({ serviceId, onSave, onClose }) {
+  const [form, setForm] = useState({ name: "", type: "http", version: "", spec_ref: "" });
+  const [saving, setSaving] = useState(false);
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const r = await interfacesApi.create(serviceId, form);
+      onSave(r.data);
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal title="Добавить интерфейс" onClose={onClose}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <label style={labelStyle}>
+          Название *
+          <input value={form.name} onChange={set("name")} placeholder="Payments API" style={inputStyle} />
+        </label>
+        <label style={labelStyle}>
+          Тип *
+          <select value={form.type} onChange={set("type")} style={inputStyle}>
+            <option value="http">HTTP</option>
+            <option value="grpc">gRPC</option>
+          </select>
+        </label>
+        <label style={labelStyle}>
+          Версия
+          <input value={form.version} onChange={set("version")} placeholder="1.0" style={inputStyle} />
+        </label>
+        <label style={labelStyle}>
+          Ссылка на спецификацию
+          <input value={form.spec_ref} onChange={set("spec_ref")} placeholder="https://..." style={inputStyle} />
+        </label>
+        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+          <button onClick={handleSave} disabled={saving || !form.name} style={btnStyle("#16a34a")}>
+            {saving ? "Сохранение..." : "Создать"}
+          </button>
+          <button onClick={onClose} style={btnStyle("#334155")}>Отмена</button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+// ─── Добавление метода ─────────────────────────────────────────────────────────
+
+function AddMethodModal({ interfaceId, onSave, onClose }) {
+  const [form, setForm] = useState({ name: "", http_method: "GET", path: "", description: "" });
+  const [saving, setSaving] = useState(false);
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const r = await methodsApi.create(interfaceId, form);
+      onSave(r.data);
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal title="Добавить метод" onClose={onClose}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <label style={labelStyle}>
+          HTTP метод
+          <select value={form.http_method} onChange={set("http_method")} style={inputStyle}>
+            {["GET", "POST", "PUT", "PATCH", "DELETE"].map((m) => <option key={m}>{m}</option>)}
+          </select>
+        </label>
+        {[
+          { key: "path", label: "Путь", placeholder: "/api/v1/resource" },
+          { key: "name", label: "Название операции *", placeholder: "getResource" },
+          { key: "description", label: "Описание", placeholder: "" },
+        ].map(({ key, label, placeholder }) => (
+          <label key={key} style={labelStyle}>
+            {label}
+            <input value={form[key]} onChange={set(key)} placeholder={placeholder} style={inputStyle} />
+          </label>
+        ))}
+        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+          <button onClick={handleSave} disabled={saving || !form.name} style={btnStyle("#16a34a")}>
+            {saving ? "Сохранение..." : "Создать"}
+          </button>
+          <button onClick={onClose} style={btnStyle("#334155")}>Отмена</button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 // ─── Метод в дереве ────────────────────────────────────────────────────────────
 
 function MethodRow({ interfaceId, serviceSystemId, method, onDeleted }) {
@@ -120,6 +260,7 @@ function InterfaceBlock({ iface, systemId, onDeleted }) {
   const [methods, setMethods] = useState([]);
   const [open, setOpen] = useState(true);
   const [confirming, setConfirming] = useState(false);
+  const [showAddMethod, setShowAddMethod] = useState(false);
 
   useEffect(() => {
     methodsApi.list(iface.id).then((r) => setMethods(r.data));
@@ -134,6 +275,11 @@ function InterfaceBlock({ iface, systemId, onDeleted }) {
 
   return (
     <div className="tree-item" style={{ marginLeft: 16 }}>
+      {showAddMethod && (
+        <AddMethodModal interfaceId={iface.id}
+          onSave={(m) => { setMethods((ms) => [...ms, m]); setShowAddMethod(false); }}
+          onClose={() => setShowAddMethod(false)} />
+      )}
       <div className="tree-item-header" onClick={() => { setConfirming(false); setOpen(!open); }}>
         <span>{open ? "▾" : "▸"}</span>
         <span className={`badge badge-${iface.type}`}>{iface.type.toUpperCase()}</span>
@@ -153,6 +299,12 @@ function InterfaceBlock({ iface, systemId, onDeleted }) {
               onDeleted={(id) => setMethods((ms) => ms.filter((x) => x.id !== id))} />
           ))}
           {methods.length === 0 && <div style={{ padding: "8px 32px", color: "#90a4ae", fontSize: 13 }}>Нет методов</div>}
+          <div style={{ padding: "6px 32px" }}>
+            <button onClick={(e) => { e.stopPropagation(); setShowAddMethod(true); }}
+              style={{ ...btnStyle("#1e40af"), fontSize: 12, padding: "3px 10px" }}>
+              + Метод
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -167,6 +319,7 @@ function ServiceBlock({ systemId, service, onDeleted }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(service.name);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [showAddIface, setShowAddIface] = useState(false);
 
   const load = () => {
     if (!open) interfacesApi.list(service.id).then((r) => setInterfaces(r.data));
@@ -189,6 +342,11 @@ function ServiceBlock({ systemId, service, onDeleted }) {
 
   return (
     <div className="tree-item">
+      {showAddIface && (
+        <AddInterfaceModal serviceId={service.id}
+          onSave={(iface) => { setInterfaces((is) => [...is, iface]); setShowAddIface(false); }}
+          onClose={() => setShowAddIface(false)} />
+      )}
       <div className="tree-item-header" onClick={() => { if (!editing) load(); }}>
         <span>{open ? "▾" : "▸"}</span>
         {editing ? (
@@ -220,7 +378,11 @@ function ServiceBlock({ systemId, service, onDeleted }) {
             <InterfaceBlock key={iface.id} iface={iface} systemId={systemId}
               onDeleted={(id) => setInterfaces((is) => is.filter((x) => x.id !== id))} />
           ))}
-          {interfaces.length === 0 && <div style={{ color: "#90a4ae", fontSize: 13 }}>Нет интерфейсов</div>}
+          {interfaces.length === 0 && <div style={{ color: "#90a4ae", fontSize: 13, marginBottom: 8 }}>Нет интерфейсов</div>}
+          <button onClick={(e) => { e.stopPropagation(); setShowAddIface(true); }}
+            style={{ ...btnStyle("#1e40af"), fontSize: 12, padding: "3px 10px", marginTop: 4 }}>
+            + Интерфейс
+          </button>
         </div>
       )}
     </div>
@@ -235,6 +397,7 @@ export default function SystemDetail() {
   const [system, setSystem] = useState(null);
   const [services, setServices] = useState([]);
   const [showEdit, setShowEdit] = useState(false);
+  const [showAddService, setShowAddService] = useState(false);
 
   useEffect(() => {
     systemsApi.get(systemId).then((r) => setSystem(r.data));
@@ -253,6 +416,11 @@ export default function SystemDetail() {
     <div>
       {showEdit && (
         <EditSystemModal system={system} onSave={(updated) => setSystem(updated)} onClose={() => setShowEdit(false)} />
+      )}
+      {showAddService && (
+        <AddServiceModal systemId={systemId}
+          onSave={(svc) => { setServices((s) => [...s, svc]); setShowAddService(false); }}
+          onClose={() => setShowAddService(false)} />
       )}
 
       <div className="breadcrumb"><Link to="/">Каталог</Link> / {system.name}</div>
@@ -278,7 +446,10 @@ export default function SystemDetail() {
         </div>
       </div>
 
-      <h2 style={{ marginBottom: 12, fontSize: 18 }}>Сервисы ({services.length})</h2>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <h2 style={{ fontSize: 18, margin: 0 }}>Сервисы ({services.length})</h2>
+        <button onClick={() => setShowAddService(true)} style={btnStyle("#16a34a")}>+ Добавить сервис</button>
+      </div>
       {services.map((svc) => (
         <ServiceBlock key={svc.id} systemId={systemId} service={svc}
           onDeleted={(id) => setServices((s) => s.filter((x) => x.id !== id))} />

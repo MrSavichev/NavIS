@@ -98,7 +98,7 @@ function SourceCard({ source, systemId, onDelete }) {
   return (
     <div style={{
       background: "#1e293b", border: "1px solid #334155",
-      borderRadius: 10, padding: 16, marginBottom: 14
+      borderRadius: 10, padding: 16, marginBottom: 14, color: "#e2e8f0",
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
@@ -148,6 +148,7 @@ function SourceCard({ source, systemId, onDelete }) {
 const EMPTY_FORM = {
   name: "", type: "git", repo_url: "", branch: "main",
   path_filter: "", token: "", provider: "github",
+  confluence_url: "", space_key: "",
 };
 
 export default function SourcesPage() {
@@ -169,7 +170,11 @@ export default function SourcesPage() {
   };
 
   const handleCreate = async () => {
-    if (!form.name || !form.repo_url) return;
+    const isGit = form.type === "git";
+    const isConfluence = form.type === "confluence";
+    if (!form.name) return;
+    if (isGit && !form.repo_url) return;
+    if (isConfluence && (!form.confluence_url || !form.space_key || !form.token)) return;
     setSaving(true);
     try {
       await ingestApi.createSource(systemId, form);
@@ -221,41 +226,74 @@ export default function SourcesPage() {
               <input value={form.name} onChange={set("name")} style={inputStyle} placeholder="My Service API" />
             </label>
             <label style={labelStyle}>
-              Провайдер
-              <select value={form.provider} onChange={set("provider")} style={inputStyle}>
-                <option value="github">GitHub</option>
-                <option value="gitlab">GitLab</option>
-                <option value="bitbucket">Bitbucket Server</option>
+              Тип источника
+              <select value={form.type} onChange={set("type")} style={inputStyle}>
+                <option value="git">Git репозиторий</option>
+                <option value="confluence">Confluence (draw.io)</option>
               </select>
             </label>
-            <label style={{ ...labelStyle, gridColumn: "1 / -1" }}>
-              URL репозитория *
-              <input value={form.repo_url} onChange={set("repo_url")} style={inputStyle}
-                placeholder={
-                  form.provider === "bitbucket"
-                    ? "https://bitbucket.company.com/projects/KEY/repos/my-repo"
-                    : form.provider === "gitlab"
-                    ? "https://gitlab.company.com/org/repo"
-                    : "https://github.com/org/repo"
-                } />
-            </label>
-            <label style={labelStyle}>
-              Ветка
-              <input value={form.branch} onChange={set("branch")} style={inputStyle} placeholder="main" />
-            </label>
-            <label style={labelStyle}>
-              Фильтр путей (glob)
-              <input value={form.path_filter} onChange={set("path_filter")} style={inputStyle}
-                placeholder="api/**/*.yaml" />
-            </label>
-            <label style={{ ...labelStyle, gridColumn: "1 / -1" }}>
-              Токен доступа (опционально)
-              <input value={form.token} onChange={set("token")} style={inputStyle}
-                type="password" placeholder="ghp_..." />
-            </label>
+
+            {form.type === "git" && (<>
+              <label style={labelStyle}>
+                Провайдер
+                <select value={form.provider} onChange={set("provider")} style={inputStyle}>
+                  <option value="github">GitHub</option>
+                  <option value="gitlab">GitLab</option>
+                  <option value="bitbucket">Bitbucket Server</option>
+                </select>
+              </label>
+              <label style={{ ...labelStyle, gridColumn: "1 / -1" }}>
+                URL репозитория *
+                <input value={form.repo_url} onChange={set("repo_url")} style={inputStyle}
+                  placeholder={
+                    form.provider === "bitbucket"
+                      ? "https://bitbucket.company.com/projects/KEY/repos/my-repo"
+                      : form.provider === "gitlab"
+                      ? "https://gitlab.company.com/org/repo"
+                      : "https://github.com/org/repo"
+                  } />
+              </label>
+              <label style={labelStyle}>
+                Ветка
+                <input value={form.branch} onChange={set("branch")} style={inputStyle} placeholder="main" />
+              </label>
+              <label style={labelStyle}>
+                Фильтр путей (glob)
+                <input value={form.path_filter} onChange={set("path_filter")} style={inputStyle}
+                  placeholder="api/**/*.yaml" />
+              </label>
+              <label style={{ ...labelStyle, gridColumn: "1 / -1" }}>
+                Токен доступа (опционально)
+                <input value={form.token} onChange={set("token")} style={inputStyle}
+                  type="password" placeholder="ghp_..." />
+              </label>
+            </>)}
+
+            {form.type === "confluence" && (<>
+              <label style={{ ...labelStyle, gridColumn: "1 / -1" }}>
+                URL Confluence *
+                <input value={form.confluence_url} onChange={set("confluence_url")} style={inputStyle}
+                  placeholder="https://confluence.company.com" />
+              </label>
+              <label style={labelStyle}>
+                Space Key *
+                <input value={form.space_key} onChange={set("space_key")} style={inputStyle}
+                  placeholder="MYSPACE" />
+              </label>
+              <label style={labelStyle}>
+                Фильтр страниц (title, опционально)
+                <input value={form.path_filter} onChange={set("path_filter")} style={inputStyle}
+                  placeholder="Схема сервисов" />
+              </label>
+              <label style={{ ...labelStyle, gridColumn: "1 / -1" }}>
+                Basic Auth (username:password) *
+                <input value={form.token} onChange={set("token")} style={inputStyle}
+                  type="password" placeholder="admin:mypassword" />
+              </label>
+            </>)}
           </div>
           <div style={{ marginTop: 16, display: "flex", gap: 8 }}>
-            <button onClick={handleCreate} disabled={saving || !form.name || !form.repo_url}
+            <button onClick={handleCreate} disabled={saving || !form.name || (form.type === "git" && !form.repo_url) || (form.type === "confluence" && (!form.confluence_url || !form.space_key || !form.token))}
               style={btnStyle("#16a34a")}>
               {saving ? "Сохранение..." : "Создать"}
             </button>
@@ -265,7 +303,7 @@ export default function SourcesPage() {
       )}
 
       {sources.length > 0 && (
-        <div style={{ fontSize: 13, color: "#64748b", marginBottom: 12, borderTop: "1px solid #1e293b", paddingTop: 12 }}>
+        <div style={{ fontSize: 13, color: "#64748b", marginBottom: 12, borderTop: "1px solid #334155", paddingTop: 12 }}>
           Источники ({sources.length})
         </div>
       )}

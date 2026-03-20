@@ -79,6 +79,10 @@ async def run_ingest(system_id: str, source_id: str, db: AsyncSession = Depends(
         "path_filter": source.path_filter,
         "token": source.token,
         "provider": source.provider,
+        # Confluence fields
+        "confluence_url": source.confluence_url,
+        "space_key": source.space_key,
+        "page_filter": source.path_filter,  # путь используется как фильтр страниц
     }
     await redis.rpush("navis:ingest:queue", json.dumps(task))
     await redis.aclose()

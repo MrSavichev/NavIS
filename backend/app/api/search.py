@@ -24,7 +24,7 @@ async def search(
         ).limit(10)
     )).scalars().all()
     for s in systems:
-        results.append(SearchResult(id=s.id, type="system", label=s.name, description=s.description))
+        results.append(SearchResult(id=s.id, type="system", label=s.name, description=s.description, url=f"/systems/{s.id}"))
 
     # Сервисы
     services = (await db.execute(
@@ -33,7 +33,7 @@ async def search(
         ).limit(10)
     )).scalars().all()
     for s in services:
-        results.append(SearchResult(id=s.id, type="service", label=s.name, description=s.description))
+        results.append(SearchResult(id=s.id, type="service", label=s.name, description=s.description, url=f"/systems/{s.system_id}"))
 
     # Методы
     methods = (await db.execute(
@@ -42,6 +42,6 @@ async def search(
         ).limit(10)
     )).scalars().all()
     for m in methods:
-        results.append(SearchResult(id=m.id, type="method", label=m.name, description=m.description, path=m.path))
+        results.append(SearchResult(id=m.id, type="method", label=m.name, description=m.description, path=m.path, url=f"/methods/{m.interface_id}/{m.id}"))
 
     return results
