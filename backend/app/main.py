@@ -4,7 +4,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.openapi.docs import get_redoc_html
+from fastapi.responses import JSONResponse, HTMLResponse
 
 from app.db.database import engine, Base
 from app.api import systems, services, interfaces, methods, graph, search, ingest
@@ -33,9 +34,18 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
     docs_url="/api/docs",
-    redoc_url="/api/redoc",
+    redoc_url=None,
     openapi_url="/api/openapi.json",
 )
+
+
+@app.get("/api/redoc", include_in_schema=False, response_class=HTMLResponse)
+async def redoc():
+    return get_redoc_html(
+        openapi_url="/api/openapi.json",
+        title="NavIS API — ReDoc",
+        redoc_js_url="https://cdn.jsdelivr.net/npm/redoc@2.1.5/bundles/redoc.standalone.js",
+    )
 
 app.add_middleware(
     CORSMiddleware,
