@@ -499,6 +499,37 @@ Evidence — ссылки на первоисточники данных о ме
 Поддерживаемые провайдеры (`provider`): `github`, `gitlab`, `bitbucket`.
 Для Bitbucket Server формат URL: `https://bitbucket.company.com/projects/KEY/repos/my-repo`.
 
+#### DB-источник (MS SQL Server / PostgreSQL)
+
+**Request body**
+```json
+{
+  "name": "BackOffice DB",
+  "type": "mssql",
+  "db_host": "msa-db01.company.com",
+  "db_port": 1433,
+  "db_name": "BackOffice",
+  "db_schema": "dbo",
+  "token": "svc_navis:password"
+}
+```
+
+Для PostgreSQL: `"type": "postgresql"`, `"db_port": 5432`, `"db_schema": "public"` (или null — все схемы).
+
+Поля DB-источника:
+| Поле | Обязательно | Описание |
+|---|---|---|
+| `db_host` | ✓ | Хост сервера БД |
+| `db_port` | — | Порт (по умолчанию: 1433 для mssql, 5432 для postgresql) |
+| `db_name` | ✓ | Имя базы данных |
+| `db_schema` | — | Конкретная схема (null = все пользовательские схемы) |
+| `token` | ✓ | Аутентификация в формате `username:password` |
+
+DB-коннектор создаёт в каталоге:
+- **Service**: `DB: {db_name} [{driver}]`
+- **Interface**: имя схемы, `type` = `mssql` / `postgresql`
+- **Method**: таблица / VIEW / процедура; `http_method` = `TABLE` / `VIEW` / `PROC`; `description` = список колонок или фрагмент кода
+
 #### Confluence-источник
 
 **Request body**

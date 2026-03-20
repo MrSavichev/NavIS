@@ -208,8 +208,11 @@ async def handle_ingest_confluence(task: dict, db: AsyncSession):
         await db.commit()
 
 
-async def handle_ingest_mssql(task: dict, db: AsyncSession):
-    """Инвентаризирует MS SQL Server: схемы, таблицы, представления, процедуры."""
+async def handle_ingest_db(task: dict, db: AsyncSession, driver: str):
+    """
+    Общий handler для DB-коннекторов (mssql, postgresql).
+    Логика одинакова — отличается только fetcher.
+    """
     job_id = task.get("job_id")
     source_id = task.get("source_id")
     system_id = task.get("system_id")
@@ -225,20 +228,25 @@ async def handle_ingest_mssql(task: dict, db: AsyncSession):
     await db.commit()
 
     host = task.get("db_host")
-    port = int(task.get("db_port") or 1433)
+    port = int(task.get("db_port") or (1433 if driver == "mssql" else 5432))
     db_name = task.get("db_name")
     schema_filter = task.get("db_schema") or None
     token = task.get("token")
 
-    log.info(f"[job={job_id}] MSSQL ingest: {host}:{port}/{db_name} schema={schema_filter}")
+    log.info(f"[job={job_id}] {driver.upper()} ingest: {host}:{port}/{db_name} schema={schema_filter}")
 
     try:
-        from worker.fetchers.mssql import fetch_mssql_sync
-
-        loop = asyncio.get_event_loop()
-        schemas_data = await loop.run_in_executor(
-            None, fetch_mssql_sync, host, port, token, db_name, schema_filter
-        )
+        if driver == "mssql":
+            from worker.fetchers.mssql import fetch_mssql_sync
+            loop = asyncio.get_event_loop()
+            schemas_data = await loop.run_in_executor(
+                None, fetch_mssql_sync, host, port, token, db_name, schema_filter
+            )
+        elif driver == "postgresql":
+            from worker.fetchers.postgresql import fetch_postgresql
+            schemas_data = await fetch_postgresql(host, port, token, db_name, schema_filter)
+        else:
+            raise ValueError(f"Unknown DB driver: {driver}")
 
         log_lines = []
         total_objects = 0
@@ -246,62 +254,50 @@ async def handle_ingest_mssql(task: dict, db: AsyncSession):
         for schema_info in schemas_data:
             schema = schema_info["schema"]
 
-            # Service: "DB: db_name" (один на всю БД)
-            svc_name = f"DB: {db_name}"
+            # Service: "DB: db_name [driver]"
+            svc_name = f"DB: {db_name} [{driver}]"
             svc_result = await db.execute(
-                select(Service).where(
-                    Service.system_id == system_id,
-                    Service.name == svc_name,
-                )
+                select(Service).where(Service.system_id == system_id, Service.name == svc_name)
             )
             svc = svc_result.scalar_one_or_none()
             if not svc:
                 svc = Service(
                     system_id=system_id,
                     name=svc_name,
-                    description=f"MS SQL Server база данных: {db_name} на {host}:{port}",
+                    description=f"{driver.upper()} база данных: {db_name} на {host}:{port}",
                 )
                 db.add(svc)
                 await db.flush()
 
             # Interface: схема
-            iface_name = schema
             iface_result = await db.execute(
-                select(Interface).where(
-                    Interface.service_id == svc.id,
-                    Interface.name == iface_name,
-                )
+                select(Interface).where(Interface.service_id == svc.id, Interface.name == schema)
             )
             iface = iface_result.scalar_one_or_none()
             if not iface:
                 iface = Interface(
                     service_id=svc.id,
-                    name=iface_name,
-                    type="mssql",
-                    version=None,
-                    spec_ref=f"mssql://{host}:{port}/{db_name}/{schema}",
+                    name=schema,
+                    type=driver,
+                    spec_ref=f"{driver}://{host}:{port}/{db_name}/{schema}",
                 )
                 db.add(iface)
                 await db.flush()
 
-            # Methods: таблицы, представления, процедуры
             for table in schema_info["tables"]:
                 tname = table["name"]
-                ttype = table["type"]  # TABLE или VIEW
+                ttype = table["type"]
                 col_summary = ", ".join(
                     f"{c['name']} {c['data_type']}" + ("?" if c["nullable"] else "")
-                    for c in table["columns"][:20]  # не более 20 колонок в описании
+                    for c in table["columns"][:20]
                 )
                 if len(table["columns"]) > 20:
                     col_summary += f", ... (+{len(table['columns']) - 20})"
 
-                m_result = await db.execute(
-                    select(Method).where(
-                        Method.interface_id == iface.id,
-                        Method.name == tname,
-                    )
+                exists = await db.execute(
+                    select(Method).where(Method.interface_id == iface.id, Method.name == tname)
                 )
-                if not m_result.scalar_one_or_none():
+                if not exists.scalar_one_or_none():
                     db.add(Method(
                         interface_id=iface.id,
                         name=tname,
@@ -314,13 +310,10 @@ async def handle_ingest_mssql(task: dict, db: AsyncSession):
 
             for proc in schema_info["procs"]:
                 pname = proc["name"]
-                m_result = await db.execute(
-                    select(Method).where(
-                        Method.interface_id == iface.id,
-                        Method.name == pname,
-                    )
+                exists = await db.execute(
+                    select(Method).where(Method.interface_id == iface.id, Method.name == pname)
                 )
-                if not m_result.scalar_one_or_none():
+                if not exists.scalar_one_or_none():
                     db.add(Method(
                         interface_id=iface.id,
                         name=pname,
@@ -343,7 +336,7 @@ async def handle_ingest_mssql(task: dict, db: AsyncSession):
         log.info(f"[job={job_id}] Done. schemas={len(schemas_data)} objects={total_objects}")
 
     except Exception as e:
-        log.exception(f"[job={job_id}] MSSQL ingest failed: {e}")
+        log.exception(f"[job={job_id}] {driver.upper()} ingest failed: {e}")
         job.status = "error"
         job.error = str(e)
         job.finished_at = utcnow()
@@ -360,7 +353,9 @@ async def process_task(task: dict):
         elif task_type == "ingest:confluence":
             await handle_ingest_confluence(task, db)
         elif task_type == "ingest:mssql":
-            await handle_ingest_mssql(task, db)
+            await handle_ingest_db(task, db, driver="mssql")
+        elif task_type == "ingest:postgresql":
+            await handle_ingest_db(task, db, driver="postgresql")
         else:
             log.warning(f"Unknown task type: {task_type}")
 
