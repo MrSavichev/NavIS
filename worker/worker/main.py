@@ -15,7 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
 from worker.config import settings
-from worker.models import IngestJob, IngestSource, Service, Edge
+from worker.models import IngestJob, IngestSource, Service, Interface, Method, Edge
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
@@ -208,6 +208,148 @@ async def handle_ingest_confluence(task: dict, db: AsyncSession):
         await db.commit()
 
 
+async def handle_ingest_mssql(task: dict, db: AsyncSession):
+    """Инвентаризирует MS SQL Server: схемы, таблицы, представления, процедуры."""
+    job_id = task.get("job_id")
+    source_id = task.get("source_id")
+    system_id = task.get("system_id")
+
+    result = await db.execute(select(IngestJob).where(IngestJob.id == job_id))
+    job = result.scalar_one_or_none()
+    if not job:
+        log.error(f"IngestJob {job_id} not found")
+        return
+
+    job.status = "running"
+    job.started_at = utcnow()
+    await db.commit()
+
+    host = task.get("db_host")
+    port = int(task.get("db_port") or 1433)
+    db_name = task.get("db_name")
+    schema_filter = task.get("db_schema") or None
+    token = task.get("token")
+
+    log.info(f"[job={job_id}] MSSQL ingest: {host}:{port}/{db_name} schema={schema_filter}")
+
+    try:
+        from worker.fetchers.mssql import fetch_mssql_sync
+
+        loop = asyncio.get_event_loop()
+        schemas_data = await loop.run_in_executor(
+            None, fetch_mssql_sync, host, port, token, db_name, schema_filter
+        )
+
+        log_lines = []
+        total_objects = 0
+
+        for schema_info in schemas_data:
+            schema = schema_info["schema"]
+
+            # Service: "DB: db_name" (один на всю БД)
+            svc_name = f"DB: {db_name}"
+            svc_result = await db.execute(
+                select(Service).where(
+                    Service.system_id == system_id,
+                    Service.name == svc_name,
+                )
+            )
+            svc = svc_result.scalar_one_or_none()
+            if not svc:
+                svc = Service(
+                    system_id=system_id,
+                    name=svc_name,
+                    description=f"MS SQL Server база данных: {db_name} на {host}:{port}",
+                )
+                db.add(svc)
+                await db.flush()
+
+            # Interface: схема
+            iface_name = schema
+            iface_result = await db.execute(
+                select(Interface).where(
+                    Interface.service_id == svc.id,
+                    Interface.name == iface_name,
+                )
+            )
+            iface = iface_result.scalar_one_or_none()
+            if not iface:
+                iface = Interface(
+                    service_id=svc.id,
+                    name=iface_name,
+                    type="mssql",
+                    version=None,
+                    spec_ref=f"mssql://{host}:{port}/{db_name}/{schema}",
+                )
+                db.add(iface)
+                await db.flush()
+
+            # Methods: таблицы, представления, процедуры
+            for table in schema_info["tables"]:
+                tname = table["name"]
+                ttype = table["type"]  # TABLE или VIEW
+                col_summary = ", ".join(
+                    f"{c['name']} {c['data_type']}" + ("?" if c["nullable"] else "")
+                    for c in table["columns"][:20]  # не более 20 колонок в описании
+                )
+                if len(table["columns"]) > 20:
+                    col_summary += f", ... (+{len(table['columns']) - 20})"
+
+                m_result = await db.execute(
+                    select(Method).where(
+                        Method.interface_id == iface.id,
+                        Method.name == tname,
+                    )
+                )
+                if not m_result.scalar_one_or_none():
+                    db.add(Method(
+                        interface_id=iface.id,
+                        name=tname,
+                        http_method=ttype,
+                        path=f"{schema}.{tname}",
+                        description=col_summary or None,
+                    ))
+                    total_objects += 1
+                    log_lines.append(f"OK   {ttype} {schema}.{tname} ({len(table['columns'])} cols)")
+
+            for proc in schema_info["procs"]:
+                pname = proc["name"]
+                m_result = await db.execute(
+                    select(Method).where(
+                        Method.interface_id == iface.id,
+                        Method.name == pname,
+                    )
+                )
+                if not m_result.scalar_one_or_none():
+                    db.add(Method(
+                        interface_id=iface.id,
+                        name=pname,
+                        http_method="PROC",
+                        path=f"{schema}.{pname}",
+                        description=proc.get("definition_snippet"),
+                    ))
+                    total_objects += 1
+                    log_lines.append(f"OK   PROC {schema}.{pname}")
+
+        await db.commit()
+
+        job.files_found = len(schemas_data)
+        job.methods_created = total_objects
+        job.status = "done"
+        job.finished_at = utcnow()
+        job.log = "\n".join(log_lines)
+        await db.commit()
+
+        log.info(f"[job={job_id}] Done. schemas={len(schemas_data)} objects={total_objects}")
+
+    except Exception as e:
+        log.exception(f"[job={job_id}] MSSQL ingest failed: {e}")
+        job.status = "error"
+        job.error = str(e)
+        job.finished_at = utcnow()
+        await db.commit()
+
+
 async def process_task(task: dict):
     task_type = task.get("type")
     log.info(f"Processing task: {task_type}")
@@ -217,6 +359,8 @@ async def process_task(task: dict):
             await handle_ingest_git(task, db)
         elif task_type == "ingest:confluence":
             await handle_ingest_confluence(task, db)
+        elif task_type == "ingest:mssql":
+            await handle_ingest_mssql(task, db)
         else:
             log.warning(f"Unknown task type: {task_type}")
 

@@ -4,16 +4,21 @@ from pydantic import BaseModel
 
 class IngestSourceCreate(BaseModel):
     name: str
-    type: str                       # git, confluence
+    type: str                       # git, confluence, mssql
     # Git
     repo_url: str | None = None
     branch: str = "main"
     path_filter: str | None = None
     token: str | None = None
-    provider: str = "github"        # github, gitlab
+    provider: str = "github"        # github, gitlab, bitbucket
     # Confluence
     confluence_url: str | None = None
     space_key: str | None = None
+    # DB (mssql / postgresql / clickhouse)
+    db_host: str | None = None
+    db_port: int | None = None
+    db_name: str | None = None
+    db_schema: str | None = None    # None = all schemas
 
 
 class IngestSourceOut(BaseModel):
@@ -27,6 +32,10 @@ class IngestSourceOut(BaseModel):
     provider: str | None
     confluence_url: str | None
     space_key: str | None
+    db_host: str | None
+    db_port: int | None
+    db_name: str | None
+    db_schema: str | None
     last_run_at: datetime | None
     last_run_status: str | None
     last_run_error: str | None

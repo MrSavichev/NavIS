@@ -107,10 +107,14 @@ function SourceCard({ source, systemId, onDelete }) {
             <span style={{
               background: "#0f172a", padding: "1px 7px", borderRadius: 4,
               marginRight: 6, fontSize: 12
-            }}>{source.provider || "github"}</span>
-            {source.repo_url}
-            {source.branch && <span style={{ color: "#64748b" }}> @ {source.branch}</span>}
-            {source.path_filter && <span style={{ color: "#64748b" }}> [{source.path_filter}]</span>}
+            }}>{source.type === "mssql" ? "mssql" : source.type === "confluence" ? "confluence" : (source.provider || "github")}</span>
+            {source.type === "mssql"
+              ? <>{source.db_host}:{source.db_port || 1433} / {source.db_name}{source.db_schema ? <span style={{ color: "#64748b" }}> [{source.db_schema}]</span> : ""}</>
+              : source.type === "confluence"
+              ? <>{source.confluence_url} <span style={{ color: "#64748b" }}>space: {source.space_key}</span></>
+              : <>{source.repo_url}{source.branch && <span style={{ color: "#64748b" }}> @ {source.branch}</span>}</>
+            }
+            {source.path_filter && source.type !== "mssql" && <span style={{ color: "#64748b" }}> [{source.path_filter}]</span>}
           </div>
           {lastStatus && (
             <div style={{ marginTop: 4, fontSize: 12, color: statusColor }}>
@@ -149,6 +153,7 @@ const EMPTY_FORM = {
   name: "", type: "git", repo_url: "", branch: "main",
   path_filter: "", token: "", provider: "github",
   confluence_url: "", space_key: "",
+  db_host: "", db_port: "1433", db_name: "", db_schema: "",
 };
 
 export default function SourcesPage() {
@@ -172,9 +177,11 @@ export default function SourcesPage() {
   const handleCreate = async () => {
     const isGit = form.type === "git";
     const isConfluence = form.type === "confluence";
+    const isMssql = form.type === "mssql";
     if (!form.name) return;
     if (isGit && !form.repo_url) return;
     if (isConfluence && (!form.confluence_url || !form.space_key || !form.token)) return;
+    if (isMssql && (!form.db_host || !form.db_name || !form.token)) return;
     setSaving(true);
     try {
       await ingestApi.createSource(systemId, form);
@@ -230,6 +237,7 @@ export default function SourcesPage() {
               <select value={form.type} onChange={set("type")} style={inputStyle}>
                 <option value="git">Git репозиторий</option>
                 <option value="confluence">Confluence (draw.io)</option>
+                <option value="mssql">MS SQL Server</option>
               </select>
             </label>
 
@@ -269,6 +277,34 @@ export default function SourcesPage() {
               </label>
             </>)}
 
+            {form.type === "mssql" && (<>
+              <label style={labelStyle}>
+                Сервер (host) *
+                <input value={form.db_host} onChange={set("db_host")} style={inputStyle}
+                  placeholder="msa-db01.company.com" />
+              </label>
+              <label style={labelStyle}>
+                Порт
+                <input value={form.db_port} onChange={set("db_port")} style={inputStyle}
+                  placeholder="1433" type="number" />
+              </label>
+              <label style={labelStyle}>
+                База данных *
+                <input value={form.db_name} onChange={set("db_name")} style={inputStyle}
+                  placeholder="BackOffice" />
+              </label>
+              <label style={labelStyle}>
+                Схема (опционально, по умолчанию все)
+                <input value={form.db_schema} onChange={set("db_schema")} style={inputStyle}
+                  placeholder="dbo" />
+              </label>
+              <label style={{ ...labelStyle, gridColumn: "1 / -1" }}>
+                Авторизация (username:password) *
+                <input value={form.token} onChange={set("token")} style={inputStyle}
+                  type="password" placeholder="svc_navis:password" />
+              </label>
+            </>)}
+
             {form.type === "confluence" && (<>
               <label style={{ ...labelStyle, gridColumn: "1 / -1" }}>
                 URL Confluence *
@@ -293,7 +329,7 @@ export default function SourcesPage() {
             </>)}
           </div>
           <div style={{ marginTop: 16, display: "flex", gap: 8 }}>
-            <button onClick={handleCreate} disabled={saving || !form.name || (form.type === "git" && !form.repo_url) || (form.type === "confluence" && (!form.confluence_url || !form.space_key || !form.token))}
+            <button onClick={handleCreate} disabled={saving || !form.name || (form.type === "git" && !form.repo_url) || (form.type === "confluence" && (!form.confluence_url || !form.space_key || !form.token)) || (form.type === "mssql" && (!form.db_host || !form.db_name || !form.token))}
               style={btnStyle("#16a34a")}>
               {saving ? "Сохранение..." : "Создать"}
             </button>

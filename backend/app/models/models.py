@@ -125,6 +125,11 @@ class IngestSource(Base):
     # Confluence fields
     confluence_url: Mapped[str | None] = mapped_column(Text)
     space_key: Mapped[str | None] = mapped_column(String(100))
+    # DB fields (mssql, postgresql, clickhouse)
+    db_host: Mapped[str | None] = mapped_column(String(255))
+    db_port: Mapped[int | None] = mapped_column()
+    db_name: Mapped[str | None] = mapped_column(String(255))
+    db_schema: Mapped[str | None] = mapped_column(String(255))  # NULL = all schemas
     # Status
     last_run_at: Mapped[datetime | None] = mapped_column(DateTime)
     last_run_status: Mapped[str | None] = mapped_column(String(50)) # pending, running, done, error

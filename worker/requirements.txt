@@ -4,3 +4,4 @@ pyyaml==6.0.2
 sqlalchemy[asyncio]==2.0.35
 asyncpg==0.29.0
 pydantic-settings==2.5.2
+pymssql==2.3.1

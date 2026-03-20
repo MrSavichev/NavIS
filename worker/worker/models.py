@@ -75,6 +75,12 @@ class IngestSource(Base):
     path_filter: Mapped[str | None] = mapped_column(String(500))
     token: Mapped[str | None] = mapped_column(Text)
     provider: Mapped[str | None] = mapped_column(String(50))
+    confluence_url: Mapped[str | None] = mapped_column(Text)
+    space_key: Mapped[str | None] = mapped_column(String(100))
+    db_host: Mapped[str | None] = mapped_column(String(255))
+    db_port: Mapped[int | None] = mapped_column()
+    db_name: Mapped[str | None] = mapped_column(String(255))
+    db_schema: Mapped[str | None] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
