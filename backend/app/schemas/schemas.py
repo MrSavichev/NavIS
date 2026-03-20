@@ -172,6 +172,34 @@ class GraphOut(BaseModel):
     edges: list[GraphEdge]
 
 
+# ─── Edge (manual mapping) ────────────────────────────────────────────────────
+
+class EdgeCreate(BaseModel):
+    from_id: str
+    from_type: str  # system, service, interface, method, external
+    to_id: str
+    to_type: str
+    kind: str       # calls, depends, uses, consumes, publishes, ...
+    confidence: float = 1.0
+
+
+class EdgeOut(BaseModel):
+    id: str
+    from_id: str
+    from_type: str
+    from_label: str | None = None
+    to_id: str
+    to_type: str
+    to_label: str | None = None
+    kind: str
+    confidence: float | None
+    source: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 # ─── Search ───────────────────────────────────────────────────────────────────
 
 class SearchResult(BaseModel):

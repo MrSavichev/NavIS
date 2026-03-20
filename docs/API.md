@@ -1,6 +1,6 @@
 # NavIS — API Reference
 
-**Версия:** 0.3.0
+**Версия:** 0.4.0
 **Base URL:** `http://<host>/api/v1`
 **Интерактивная документация:** `http://<host>/api/docs` (Swagger UI) · `http://<host>/api/redoc`
 
@@ -18,6 +18,7 @@
 8. [Graph — Граф зависимостей](#graph)
 9. [Search — Поиск](#search)
 10. [Ingest — Импорт из источников](#ingest)
+11. [Edges — Ручной маппинг зависимостей](#edges)
 
 ---
 
@@ -695,3 +696,63 @@ FastAPI Backend ──→ Redis (push задач)
                     PostgreSQL
                     (Services, Edges, Jobs)
 ```
+
+---
+
+## Edges
+
+Ручной маппинг зависимостей между объектами каталога. Рёбра (Edge) могут иметь три источника:
+- `manual` — создано пользователем через UI
+- `confluence` — импортировано из draw.io диаграмм
+- `auto` — создано автоматически воркером
+
+### GET /systems/{system_id}/edges/
+
+Список рёбер, связанных с системой (from_id или to_id входит в набор сервисов системы или сам system_id).
+
+**Ответ:**
+```json
+[
+  {
+    "id": "uuid",
+    "from_id": "uuid-service-a",
+    "from_type": "service",
+    "from_label": "ServiceA",
+    "to_id": "uuid-service-b",
+    "to_type": "service",
+    "to_label": "ServiceB",
+    "kind": "calls",
+    "confidence": 1.0,
+    "source": "manual",
+    "created_at": "2026-03-20T12:00:00"
+  }
+]
+```
+
+### POST /edges/
+
+Создать ручное ребро зависимости.
+
+**Тело запроса:**
+```json
+{
+  "from_id": "uuid-service-a",
+  "from_type": "service",
+  "to_id": "uuid-service-b",
+  "to_type": "service",
+  "kind": "calls",
+  "confidence": 1.0
+}
+```
+
+`to_id` для внешних сервисов: `ext:ServiceName` (тип `external`).
+
+Допустимые значения `kind`: `calls`, `depends`, `uses`, `consumes`, `publishes`, `extends`, `serves`.
+
+**Ответ:** 201 + EdgeOut
+
+### DELETE /edges/{edge_id}
+
+Удалить ребро (любое, включая non-manual — использовать осторожно).
+
+**Ответ:** 204 No Content

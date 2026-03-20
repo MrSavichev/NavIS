@@ -69,6 +69,12 @@ export const searchApi = {
   search: (q) => api.get("/search/", { params: { q } }),
 };
 
+export const edgesApi = {
+  listForSystem: (systemId) => api.get(`/systems/${systemId}/edges/`),
+  create: (data) => api.post("/edges/", data),
+  delete: (edgeId) => api.delete(`/edges/${edgeId}`),
+};
+
 export const ingestApi = {
   listSources: (systemId) => api.get(`/systems/${systemId}/sources/`),
   createSource: (systemId, data) => api.post(`/systems/${systemId}/sources/`, data),

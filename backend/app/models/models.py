@@ -105,6 +105,7 @@ class Edge(Base):
     to_type: Mapped[str] = mapped_column(String(50), nullable=False)
     kind: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     confidence: Mapped[float | None] = mapped_column(default=1.0)
+    source: Mapped[str] = mapped_column(String(50), default="auto")  # manual, confluence, auto
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 

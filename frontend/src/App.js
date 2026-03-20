@@ -5,6 +5,7 @@ import SystemDetail from "./pages/SystemDetail";
 import MethodDetail from "./pages/MethodDetail";
 import GraphPage from "./pages/GraphPage";
 import SourcesPage from "./pages/SourcesPage";
+import MappingPage from "./pages/MappingPage";
 import "./App.css";
 
 export default function App() {
@@ -40,6 +41,7 @@ export default function App() {
             <Route path="/methods/:interfaceId/:methodId" element={<MethodDetail />} />
             <Route path="/graph" element={<GraphPage />} />
             <Route path="/systems/:systemId/sources" element={<SourcesPage />} />
+            <Route path="/systems/:systemId/mapping" element={<MappingPage />} />
           </Routes>
         </main>
       </div>

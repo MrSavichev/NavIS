@@ -441,6 +441,9 @@ export default function SystemDetail() {
             <Link to={`/systems/${systemId}/sources`} style={{ ...btnStyle("#1e40af"), textDecoration: "none" }}>
               ⚡ Источники
             </Link>
+            <Link to={`/systems/${systemId}/mapping`} style={{ ...btnStyle("#5b21b6"), textDecoration: "none" }}>
+              ⇢ Маппинг
+            </Link>
             <button onClick={handleDelete} style={btnStyle("#7f1d1d")}>Удалить</button>
           </div>
         </div>

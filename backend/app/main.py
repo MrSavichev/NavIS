@@ -8,7 +8,7 @@ from fastapi.openapi.docs import get_redoc_html
 from fastapi.responses import JSONResponse, HTMLResponse
 
 from app.db.database import engine, Base
-from app.api import systems, services, interfaces, methods, graph, search, ingest
+from app.api import systems, services, interfaces, methods, graph, search, ingest, edges
 
 logging.basicConfig(
     level=logging.INFO,
@@ -78,6 +78,7 @@ app.include_router(graph.router, prefix="/api/v1")
 app.include_router(search.router, prefix="/api/v1")
 app.include_router(ingest.router, prefix="/api/v1")
 app.include_router(ingest.jobs_router, prefix="/api/v1")
+app.include_router(edges.router, prefix="/api/v1")
 
 
 @app.get("/api/health")
