@@ -245,6 +245,13 @@ async def handle_ingest_db(task: dict, db: AsyncSession, driver: str):
         elif driver == "postgresql":
             from worker.fetchers.postgresql import fetch_postgresql
             schemas_data = await fetch_postgresql(host, port, token, db_name, schema_filter)
+        elif driver == "clickhouse":
+            from worker.fetchers.clickhouse import fetch_clickhouse_sync
+            loop = asyncio.get_event_loop()
+            # db_name используется как фильтр базы данных; schema не применима
+            schemas_data = await loop.run_in_executor(
+                None, fetch_clickhouse_sync, host, port, token, db_name or None
+            )
         else:
             raise ValueError(f"Unknown DB driver: {driver}")
 
@@ -356,6 +363,8 @@ async def process_task(task: dict):
             await handle_ingest_db(task, db, driver="mssql")
         elif task_type == "ingest:postgresql":
             await handle_ingest_db(task, db, driver="postgresql")
+        elif task_type == "ingest:clickhouse":
+            await handle_ingest_db(task, db, driver="clickhouse")
         else:
             log.warning(f"Unknown task type: {task_type}")
 

@@ -125,7 +125,7 @@ docker compose up -d
 |------|--------|-------------------|
 | MS SQL Server | ✅ Готово | 1433 |
 | PostgreSQL | ✅ Готово | 5432 |
-| ClickHouse | В разработке | 9000 |
+| ClickHouse | ✅ Готово | 9000 |
 
 Аутентификация для всех: поле `token` в формате `username:password`.
 

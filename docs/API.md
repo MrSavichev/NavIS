@@ -516,6 +516,8 @@ Evidence — ссылки на первоисточники данных о ме
 
 Для PostgreSQL: `"type": "postgresql"`, `"db_port": 5432`, `"db_schema": "public"` (или null — все схемы).
 
+Для ClickHouse: `"type": "clickhouse"`, `"db_port": 9000`. Поле `db_name` — конкретная база данных (null = все пользовательские). Поле `db_schema` не используется — в ClickHouse нет sub-schemas.
+
 Поля DB-источника:
 | Поле | Обязательно | Описание |
 |---|---|---|

@@ -107,9 +107,9 @@ function SourceCard({ source, systemId, onDelete }) {
             <span style={{
               background: "#0f172a", padding: "1px 7px", borderRadius: 4,
               marginRight: 6, fontSize: 12
-            }}>{source.type === "mssql" || source.type === "postgresql" ? source.type : source.type === "confluence" ? "confluence" : (source.provider || "github")}</span>
-            {(source.type === "mssql" || source.type === "postgresql")
-              ? <>{source.db_host}:{source.db_port || (source.type === "mssql" ? 1433 : 5432)} / {source.db_name}{source.db_schema ? <span style={{ color: "#64748b" }}> [{source.db_schema}]</span> : ""}</>
+            }}>{["mssql","postgresql","clickhouse"].includes(source.type) ? source.type : source.type === "confluence" ? "confluence" : (source.provider || "github")}</span>
+            {(source.type === "mssql" || source.type === "postgresql" || source.type === "clickhouse")
+              ? <>{source.db_host}:{source.db_port || DB_DEFAULTS[source.type]?.port} {source.db_name ? `/ ${source.db_name}` : ""}{source.db_schema ? <span style={{ color: "#64748b" }}> [{source.db_schema}]</span> : ""}</>
               : source.type === "confluence"
               ? <>{source.confluence_url} <span style={{ color: "#64748b" }}>space: {source.space_key}</span></>
               : <>{source.repo_url}{source.branch && <span style={{ color: "#64748b" }}> @ {source.branch}</span>}</>
@@ -153,7 +153,13 @@ const EMPTY_FORM = {
   name: "", type: "git", repo_url: "", branch: "main",
   path_filter: "", token: "", provider: "github",
   confluence_url: "", space_key: "",
-  db_host: "", db_port: "1433", db_name: "", db_schema: "",
+  db_host: "", db_port: "", db_name: "", db_schema: "",
+};
+
+const DB_DEFAULTS = {
+  mssql: { port: "1433", schemaPlaceholder: "dbo", hostPlaceholder: "msa-db01.company.com", dbPlaceholder: "BackOffice" },
+  postgresql: { port: "5432", schemaPlaceholder: "public", hostPlaceholder: "pg-db01.company.com", dbPlaceholder: "mydb" },
+  clickhouse: { port: "9000", schemaPlaceholder: null, hostPlaceholder: "ch-db01.company.com", dbPlaceholder: "analytics" },
 };
 
 export default function SourcesPage() {
@@ -177,11 +183,12 @@ export default function SourcesPage() {
   const handleCreate = async () => {
     const isGit = form.type === "git";
     const isConfluence = form.type === "confluence";
-    const isDb = form.type === "mssql" || form.type === "postgresql";
+    const isDb = form.type === "mssql" || form.type === "postgresql" || form.type === "clickhouse";
     if (!form.name) return;
     if (isGit && !form.repo_url) return;
     if (isConfluence && (!form.confluence_url || !form.space_key || !form.token)) return;
-    if (isDb && (!form.db_host || !form.db_name || !form.token)) return;
+    if (isDb && (!form.db_host || !form.token)) return;
+    if ((form.type === "mssql" || form.type === "postgresql") && !form.db_name) return;
     setSaving(true);
     try {
       await ingestApi.createSource(systemId, form);
@@ -239,6 +246,7 @@ export default function SourcesPage() {
                 <option value="confluence">Confluence (draw.io)</option>
                 <option value="mssql">MS SQL Server</option>
                 <option value="postgresql">PostgreSQL</option>
+                <option value="clickhouse">ClickHouse</option>
               </select>
             </label>
 
@@ -278,33 +286,38 @@ export default function SourcesPage() {
               </label>
             </>)}
 
-            {(form.type === "mssql" || form.type === "postgresql") && (<>
-              <label style={labelStyle}>
-                Сервер (host) *
-                <input value={form.db_host} onChange={set("db_host")} style={inputStyle}
-                  placeholder={form.type === "mssql" ? "msa-db01.company.com" : "pg-db01.company.com"} />
-              </label>
-              <label style={labelStyle}>
-                Порт
-                <input value={form.db_port} onChange={set("db_port")} style={inputStyle}
-                  placeholder={form.type === "mssql" ? "1433" : "5432"} type="number" />
-              </label>
-              <label style={labelStyle}>
-                База данных *
-                <input value={form.db_name} onChange={set("db_name")} style={inputStyle}
-                  placeholder={form.type === "mssql" ? "BackOffice" : "mydb"} />
-              </label>
-              <label style={labelStyle}>
-                Схема (опционально, по умолчанию все)
-                <input value={form.db_schema} onChange={set("db_schema")} style={inputStyle}
-                  placeholder={form.type === "mssql" ? "dbo" : "public"} />
-              </label>
-              <label style={{ ...labelStyle, gridColumn: "1 / -1" }}>
-                Авторизация (username:password) *
-                <input value={form.token} onChange={set("token")} style={inputStyle}
-                  type="password" placeholder="svc_navis:password" />
-              </label>
-            </>)}
+            {(form.type === "mssql" || form.type === "postgresql" || form.type === "clickhouse") && (() => {
+              const dbDef = DB_DEFAULTS[form.type];
+              return (<>
+                <label style={labelStyle}>
+                  Сервер (host) *
+                  <input value={form.db_host} onChange={set("db_host")} style={inputStyle}
+                    placeholder={dbDef.hostPlaceholder} />
+                </label>
+                <label style={labelStyle}>
+                  Порт
+                  <input value={form.db_port} onChange={set("db_port")} style={inputStyle}
+                    placeholder={dbDef.port} type="number" />
+                </label>
+                <label style={labelStyle}>
+                  База данных{form.type === "clickhouse" ? " (опционально — все)" : " *"}
+                  <input value={form.db_name} onChange={set("db_name")} style={inputStyle}
+                    placeholder={dbDef.dbPlaceholder} />
+                </label>
+                {dbDef.schemaPlaceholder !== null && (
+                  <label style={labelStyle}>
+                    Схема (опционально, по умолчанию все)
+                    <input value={form.db_schema} onChange={set("db_schema")} style={inputStyle}
+                      placeholder={dbDef.schemaPlaceholder} />
+                  </label>
+                )}
+                <label style={{ ...labelStyle, gridColumn: "1 / -1" }}>
+                  Авторизация (username:password) *
+                  <input value={form.token} onChange={set("token")} style={inputStyle}
+                    type="password" placeholder="svc_navis:password" />
+                </label>
+              </>);
+            })()}
 
             {form.type === "confluence" && (<>
               <label style={{ ...labelStyle, gridColumn: "1 / -1" }}>
@@ -330,7 +343,7 @@ export default function SourcesPage() {
             </>)}
           </div>
           <div style={{ marginTop: 16, display: "flex", gap: 8 }}>
-            <button onClick={handleCreate} disabled={saving || !form.name || (form.type === "git" && !form.repo_url) || (form.type === "confluence" && (!form.confluence_url || !form.space_key || !form.token)) || ((form.type === "mssql" || form.type === "postgresql") && (!form.db_host || !form.db_name || !form.token))}
+            <button onClick={handleCreate} disabled={saving || !form.name || (form.type === "git" && !form.repo_url) || (form.type === "confluence" && (!form.confluence_url || !form.space_key || !form.token)) || ((form.type === "mssql" || form.type === "postgresql" || form.type === "clickhouse") && (!form.db_host || !form.token)) || ((form.type === "mssql" || form.type === "postgresql") && !form.db_name)}
               style={btnStyle("#16a34a")}>
               {saving ? "Сохранение..." : "Создать"}
             </button>
