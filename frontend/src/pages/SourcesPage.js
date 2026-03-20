@@ -119,7 +119,7 @@ function SourceCard({ source, systemId, onDelete }) {
             </div>
           )}
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 4 }}>
           <button onClick={handleRun} disabled={running} style={btnStyle("#2563eb")}>
             {running ? "Запуск..." : "▶ Запустить"}
           </button>
@@ -193,7 +193,7 @@ export default function SourcesPage() {
 
   return (
     <div style={{ padding: "24px 32px", maxWidth: 860, margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
         <div>
           <div style={{ color: "#64748b", fontSize: 13 }}>
             <a href="/" style={{ color: "#64748b" }}>Системы</a>
@@ -215,7 +215,7 @@ export default function SourcesPage() {
           padding: 20, marginBottom: 24
         }}>
           <h3 style={{ margin: "0 0 16px", color: "#f1f5f9" }}>Новый источник</h3>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
             <label style={labelStyle}>
               Название *
               <input value={form.name} onChange={set("name")} style={inputStyle} placeholder="My Service API" />

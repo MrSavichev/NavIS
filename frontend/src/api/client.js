@@ -43,11 +43,16 @@ export const interfacesApi = {
 export const methodsApi = {
   list: (interfaceId) => api.get(`/interfaces/${interfaceId}/methods/`),
   get: (interfaceId, id) => api.get(`/interfaces/${interfaceId}/methods/${id}`),
+  delete: (interfaceId, id) => api.delete(`/interfaces/${interfaceId}/methods/${id}`),
   sources: (methodId) => api.get(`/methods/${methodId}/sources`),
 };
 
 export const interfacesDirectApi = {
   get: (interfaceId) => api.get(`/interfaces/${interfaceId}`),
+};
+
+export const servicesDirectApi = {
+  get: (serviceId) => api.get(`/services/${serviceId}`),
 };
 
 export const graphApi = {

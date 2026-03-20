@@ -3,8 +3,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
-from app.models.models import Method, Interface, Source
-from app.schemas.schemas import MethodCreate, MethodOut, InterfaceOut, SourceOut
+from app.models.models import Method, Interface, Source, Service
+from app.schemas.schemas import MethodCreate, MethodOut, InterfaceOut, SourceOut, ServiceOut
 
 router = APIRouter(prefix="/interfaces/{interface_id}/methods", tags=["methods"])
 direct_router = APIRouter(tags=["methods"])
@@ -54,6 +54,15 @@ async def delete_method(interface_id: str, method_id: str, db: AsyncSession = De
 
 
 # ─── Прямой доступ без parent-id ──────────────────────────────────────────────
+
+@direct_router.get("/services/{service_id}", response_model=ServiceOut)
+async def get_service_direct(service_id: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Service).where(Service.id == service_id))
+    svc = result.scalar_one_or_none()
+    if not svc:
+        raise HTTPException(status_code=404, detail="Service not found")
+    return svc
+
 
 @direct_router.get("/interfaces/{interface_id}", response_model=InterfaceOut)
 async def get_interface_direct(interface_id: str, db: AsyncSession = Depends(get_db)):
