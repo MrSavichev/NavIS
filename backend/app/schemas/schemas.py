@@ -117,6 +117,20 @@ class MethodOut(BaseModel):
         from_attributes = True
 
 
+# ─── Source ───────────────────────────────────────────────────────────────────
+
+class SourceOut(BaseModel):
+    id: str
+    method_id: str
+    type: str
+    ref: str
+    hash: str | None
+    collected_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 # ─── Graph ────────────────────────────────────────────────────────────────────
 
 class GraphNode(BaseModel):

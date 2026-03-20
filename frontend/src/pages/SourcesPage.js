@@ -65,6 +65,14 @@ function SourceCard({ source, systemId, onDelete }) {
     }
   }, [source.id]);
 
+  // Автополлинг пока есть running джоб
+  useEffect(() => {
+    const hasRunning = jobs.some((j) => j.status === "running" || j.status === "pending");
+    if (!hasRunning) return;
+    const timer = setInterval(loadJobs, 3000);
+    return () => clearInterval(timer);
+  }, [jobs, loadJobs]);
+
   const handleRun = async () => {
     setRunning(true);
     try {
