@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import CytoscapeComponent from "react-cytoscapejs";
 import { graphApi, systemsApi } from "../api/client";
 
@@ -47,6 +47,7 @@ const STYLESHEET = [
 const ALL_TYPES = Object.keys(NODE_COLORS);
 
 export default function GraphPage() {
+  const cyRef = useRef(null);
   const [elements, setElements] = useState([]);
   const [systems, setSystems] = useState([]);
   const [selectedSystem, setSelectedSystem] = useState("");
@@ -58,31 +59,46 @@ export default function GraphPage() {
     systemsApi.list().then((r) => setSystems(r.data));
   }, []);
 
-  const [rawNodes, setRawNodes] = useState([]);
-  const [rawEdges, setRawEdges] = useState([]);
-
   useEffect(() => {
     setLoading(true);
     const params = { depth };
     if (selectedSystem) params.system_id = selectedSystem;
     graphApi.get(params).then((r) => {
       const { nodes, edges } = r.data;
-      setRawNodes(nodes.map((n) => ({ data: { id: n.id, label: n.label, type: n.type } })));
-      setRawEdges(edges.map((e) => ({ data: { id: e.id, source: e.source, target: e.target, kind: e.kind } })));
+      const allNodes = nodes.map((n) => ({ data: { id: n.id, label: n.label, type: n.type } }));
+      const allEdges = edges.map((e) => ({ data: { id: e.id, source: e.source, target: e.target, kind: e.kind } }));
+      setElements([...allNodes, ...allEdges]);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [selectedSystem, depth]);
 
+  // При смене фильтра — скрываем/показываем узлы через cy напрямую, не трогая elements
   useEffect(() => {
-    const visibleNodeIds = new Set(
-      rawNodes.filter((n) => visibleTypes.has(n.data.type)).map((n) => n.data.id)
-    );
-    const filteredNodes = rawNodes.filter((n) => visibleNodeIds.has(n.data.id));
-    const filteredEdges = rawEdges.filter(
-      (e) => visibleNodeIds.has(e.data.source) && visibleNodeIds.has(e.data.target)
-    );
-    setElements([...filteredNodes, ...filteredEdges]);
-  }, [rawNodes, rawEdges, visibleTypes]);
+    const cy = cyRef.current;
+    if (!cy) return;
+    cy.batch(() => {
+      cy.nodes().forEach((n) => {
+        if (visibleTypes.has(n.data("type"))) {
+          n.show();
+        } else {
+          n.hide();
+        }
+      });
+      // Рёбра скрываем если хотя бы один конец скрыт
+      cy.edges().forEach((e) => {
+        const srcHidden = e.source().hidden();
+        const tgtHidden = e.target().hidden();
+        if (srcHidden || tgtHidden) e.hide(); else e.show();
+      });
+    });
+  }, [visibleTypes]);
+
+  // После загрузки новых данных — запустить layout и применить фильтры
+  useEffect(() => {
+    const cy = cyRef.current;
+    if (!cy || elements.length === 0) return;
+    cy.layout({ name: "breadthfirst", directed: true, padding: 40, spacingFactor: 1.5 }).run();
+  }, [elements]);
 
   const toggleType = (type) => {
     setVisibleTypes((prev) => {
@@ -135,9 +151,10 @@ export default function GraphPage() {
           <CytoscapeComponent
             elements={elements}
             stylesheet={STYLESHEET}
-            layout={{ name: "breadthfirst", directed: true, padding: 40, spacingFactor: 1.5 }}
+            layout={{ name: "preset" }}
             style={{ width: "100%", height: "100%" }}
             cy={(cy) => {
+              cyRef.current = cy;
               cy.on("tap", "node", (e) => {
                 const node = e.target;
                 console.log("Node:", node.data());
